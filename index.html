@@ -1,6 +1,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// 1. SUPABASE CONNECTION
+// 1. DATABASE CONNECTION
 const SUPABASE_URL = 'https://gbywinmjvbgrtaazjlgm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Bli__qzQMokBoSXPrFPHKA_DXVXgM2a';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -8,8 +8,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const tracks = [
   { id: "when_i_think_about_you", t: "When I Think About You", f: "songs/when-i-think-about-you.mp3" },
   { id: "ariya", t: "Ariya", f: "songs/ariya.mp3" },
-  { id: "youre_my_home", t: "You're My Home", f: "songs/youre-my-home.mp3" },
   { id: "nice_like_this", t: "Nice Like This", f: "songs/nice-like-this.mp3" },
+  { id: "youre_my_home", t: "You're My Home", f: "songs/youre-my-home.mp3" },
   { id: "feeling_down", t: "Feeling Down", f: "songs/feeling-down.mp3" }
 ];
 
@@ -22,10 +22,11 @@ async function refreshList() {
   if (error) console.error("Database Fetch Error:", error);
 
   const container = document.getElementById('song-container');
+  // WE ADDED THIS: Makes sure the container exists before trying to draw the songs
+  if (!container) return;
+
   container.innerHTML = tracks.map((s, index) => {
-    // This matches your song IDs to the rows in your screenshot
     const row = votesData?.find(r => r.song_id === s.id) || { likes: 0, dislikes: 0 };
-    
     return `
       <div class="track-card">
         <div>
@@ -41,7 +42,7 @@ async function refreshList() {
   }).join('');
 }
 
-// 3. SEND VOTE TO SUPABASE FUNCTION
+// 3. SEND VOTE TO SUPABASE
 async function handleVote(songId, type) {
   const { error } = await sb.rpc('increment_vote', { 
     song: songId, 
@@ -50,70 +51,13 @@ async function handleVote(songId, type) {
 
   if (error) {
     console.error("Vote Error:", error.message);
-    alert("Check your Console! If it says 403, your RLS Policy isn't set to ALL yet.");
   } else {
-    refreshList(); // Redraw with new numbers from Supabase
+    refreshList(); 
   }
 }
 
 // Initial Build
 refreshList();
 
-// --- ALL YOUR NEON VISUALIZER LOGIC BELOW ---
-
-function initAndPlay(i) {
-  currentIdx = i; audio.src = tracks[currentIdx].f; audio.play();
-  document.getElementById('track-display').innerText = "PLAYING: " + tracks[currentIdx].t;
-  document.getElementById('playBtn').innerText = "Pause";
-  if (!context) { 
-    context = new (window.AudioContext || window.webkitAudioContext)(); 
-    setupVisualizer(); 
-  }
-}
-
-function setupVisualizer() {
-  const canvas = document.getElementById('viz'), ctx = canvas.getContext('2d');
-  analyser = context.createAnalyser(); analyser.fftSize = 64;
-  source = context.createMediaElementSource(audio);
-  source.connect(analyser); analyser.connect(context.destination);
-  const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-  for(let i=0; i<60; i++) drops.push({x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight, s: 2+Math.random()*4});
-
-  function animate() {
-    requestAnimationFrame(animate);
-    canvas.width = window.innerWidth; canvas.height = canvas.parentElement.offsetHeight;
-    analyser.getByteFrequencyData(dataArray);
-    
-    ctx.fillStyle = 'black'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    hue = (hue + 0.6) % 360;
-    const color = `hsl(${hue}, 100%, 50%)`;
-    document.getElementById('logo').style.textShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
-
-    const bass = dataArray[2] / 255;
-    drops.forEach(d => {
-      ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.beginPath();
-      ctx.moveTo(d.x, d.y); ctx.lineTo(d.x, d.y + 15 + (bass * 45));
-      ctx.stroke();
-      d.y += d.s + (bass * 15);
-      if(d.y > canvas.height) { d.y = -20; d.x = Math.random()*canvas.width; }
-    });
-    document.getElementById('logo').style.transform = `scale(${1 + (bass * 0.07)})`;
-  }
-  animate();
-}
-
-function toggle() { 
-  if(audio.paused) audio.play(); else audio.pause();
-  document.getElementById('playBtn').innerText = audio.paused ? "Play" : "Pause";
-}
-function next() { 
-  if (isShuffle) { currentIdx = Math.floor(Math.random()*tracks.length); } 
-  else { currentIdx = (currentIdx + 1) % tracks.length; }
-  initAndPlay(currentIdx); 
-}
-function prev() { currentIdx = (currentIdx - 1 + tracks.length) % tracks.length; initAndPlay(currentIdx); }
-function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuffleBtn').classList.toggle('active', isShuffle); }
-function toggleRepeat() { isRepeat = !isRepeat; audio.loop = isRepeat; document.getElementById('repeatBtn').classList.toggle('active', isRepeat); }
-audio.onended = () => { if(!isRepeat) next(); };
-</script>
+// --- KEEP ALL YOUR NEON VISUALIZER LOGIC BELOW ---
+// (initAndPlay, setupVisualizer, animate, toggle, next, prev, etc.)
