@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Big O - Neon Rain Final</title> 
 <style>
-  /* Base setup - Deep space background */
   body { 
     margin: 0; 
     font-family: 'Inter', sans-serif; 
@@ -15,7 +14,6 @@
     overflow-x: hidden; 
   }
 
-  /* FULL SCREEN CANVAS: Fixed to the background */
   #viz { 
     position: fixed; 
     top: 0; 
@@ -25,7 +23,6 @@
     z-index: -1; 
   }
 
-  /* Transparent header so rain shows through */
   header { 
     height: 45vh; 
     position: relative; 
@@ -36,16 +33,14 @@
   }
 
   h1 { 
-    font-size: clamp(3rem, 10vw, 6rem); /* Responsive font size */
+    font-size: clamp(3rem, 10vw, 6rem); 
     font-weight: 900; 
     letter-spacing: 15px; 
     color: #fff; 
     pointer-events: none; 
     text-transform: uppercase; 
-    transition: 0.1s ease-out;
   }
 
-  /* Content area */
   main { 
     padding: 2rem 1rem; 
     max-width: 700px; 
@@ -63,7 +58,7 @@
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    backdrop-filter: blur(12px); /* Makes text pop over the rain */
+    backdrop-filter: blur(12px); 
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
   }
 
@@ -111,7 +106,6 @@
     box-shadow: 0 0 20px #ff00ff !important; 
   }
 
-  /* Player Bar */
   .footer-player { 
     position: fixed; 
     bottom: 0; 
@@ -161,12 +155,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// --- DB SETUP ---
 const SUPABASE_URL = 'https://gbywinmjvbgrtaazjlgm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Bli__qzQMokBoSXPrFPHKA_DXVXgM2a';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// IDs must match your Table Editor exactly
 const tracks = [
   { id: "when_i_think_about_you", t: "When I Think About You", f: "songs/when-i-think-about-you.mp3" },
   { id: "ariya", t: "Ariya", f: "songs/ariya.mp3" },
@@ -178,11 +170,9 @@ const tracks = [
 let audio = new Audio(), currentIdx = 0, context, analyser, source, hue = 180;
 let isShuffle = false, isRepeat = false, drops = [];
 
-// --- UI SYNC ---
 async function refreshList() {
-  const { data: votesData, error } = await sb.from('Votes').select('*');
+  const { data: votesData } = await sb.from('Votes').select('*');
   const container = document.getElementById('song-container');
-  
   container.innerHTML = tracks.map((s, index) => {
     const v = votesData?.find(r => r.song_id === s.id) || { likes: 0, dislikes: 0 };
     return `
@@ -199,18 +189,22 @@ async function refreshList() {
   }).join('');
 }
 
-// --- VOTE ENGINE ---
+// --- UPDATED VOTE ENGINE WITH LOCALSTORAGE ANTI-SPAM ---
 async function handleVote(songId, colName) {
+  const storageKey = `voted_${songId}`;
+  
+  if (localStorage.getItem(storageKey)) {
+    alert("You've already voted for this track! ⚡");
+    return;
+  }
+
   const { error } = await sb.rpc('increment_vote', { song: songId, col: colName });
-  if (error) {
-    console.error("Sync Error:", error.message);
-  } else {
-    // Quick refresh to show new numbers
+  if (!error) {
+    localStorage.setItem(storageKey, 'true');
     setTimeout(refreshList, 300); 
   }
 }
 
-// --- PLAYER ENGINE ---
 function initAndPlay(i) {
   currentIdx = i; audio.src = tracks[currentIdx].f; audio.play();
   document.getElementById('track-display').innerText = "PLAYING: " + tracks[currentIdx].t;
@@ -241,56 +235,30 @@ function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuf
 function toggleRepeat() { isRepeat = !isRepeat; audio.loop = isRepeat; document.getElementById('repeatBtn').classList.toggle('active', isRepeat); }
 audio.onended = () => { if(!isRepeat) next(); };
 
-// --- FULL SCREEN VISUALIZER ENGINE ---
 function setupVisualizer() {
   const canvas = document.getElementById('viz'), ctx = canvas.getContext('2d');
   analyser = context.createAnalyser(); analyser.fftSize = 64;
   source = context.createMediaElementSource(audio);
   source.connect(analyser); analyser.connect(context.destination);
   const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-  // Raindrop population
-  for(let i=0; i<90; i++) drops.push({
-    x: Math.random() * window.innerWidth, 
-    y: Math.random() * window.innerHeight, 
-    s: 2 + Math.random() * 5
-  });
+  for(let i=0; i<90; i++) drops.push({x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight, s: 2+Math.random()*5});
 
   function animate() {
     requestAnimationFrame(animate);
-    // Keep canvas matching window size exactly
-    canvas.width = window.innerWidth; 
-    canvas.height = window.innerHeight;
-    
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     analyser.getByteFrequencyData(dataArray);
-    
-    // Trail effect
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'; 
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     hue = (hue + 0.5) % 360;
     const color = `hsl(${hue}, 100%, 50%)`;
     document.getElementById('logo').style.textShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
-    
     const bass = dataArray[2] / 255;
-    
     drops.forEach(d => {
-      ctx.strokeStyle = color; 
-      ctx.lineWidth = 1.5; 
-      ctx.beginPath();
-      ctx.moveTo(d.x, d.y); 
-      ctx.lineTo(d.x, d.y + 15 + (bass * 50));
+      ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.beginPath();
+      ctx.moveTo(d.x, d.y); ctx.lineTo(d.x, d.y + 15 + (bass * 50));
       ctx.stroke();
-      
       d.y += d.s + (bass * 20);
-      
-      // Reset drops when they hit the bottom of the ACTUAL window
-      if(d.y > canvas.height) { 
-        d.y = -20; 
-        d.x = Math.random() * canvas.width; 
-      }
+      if(d.y > canvas.height) { d.y = -20; d.x = Math.random()*canvas.width; }
     });
-    
     document.getElementById('logo').style.transform = `scale(${1 + (bass * 0.08)})`;
   }
   animate();
