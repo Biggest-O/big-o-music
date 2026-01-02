@@ -7,7 +7,8 @@
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; color: white; }
         canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
-        #ui { position: absolute; top: 20px; left: 20px; z-index: 10; width: 320px; max-height: 90vh; overflow-y: auto; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 15px; border: 1px solid #333; }
+        #ui { position: absolute; top: 20px; left: 20px; z-index: 10; width: 320px; max-height: 90vh; 
+              overflow-y: auto; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 15px; border: 1px solid #333; }
         .track-card { background: #111; margin-bottom: 12px; padding: 15px; border-radius: 10px; border: 1px solid #222; }
         .vote-btn { background: #222; color: white; border: 1px solid #444; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
         .play-btn { background: #1DB954; color: white; border: none; padding: 8px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; float: right; }
@@ -25,7 +26,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // 1. SUPABASE CONFIG
+        // 1. SUPABASE CONNECTION (Using your specific keys)
         const SUPABASE_URL = 'https://gbywinmjvbgrtaazjlgm.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_Bli__qzQMokBoSXPrFPHKA_DXVXgM2a';
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -45,21 +46,21 @@
         let ctx = canv.getContext('2d');
 
         function initAndPlay(idx) {
-            // First time play setup
+            // Setup audio context on first click
             if(!context) {
                 context = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = context.createAnalyser();
                 source = context.createMediaElementSource(audio);
                 source.connect(analyser);
                 analyser.connect(context.destination);
-                animate(); // Start the drawing loop
+                animate(); // Starts the visualizer loop
             }
             audio.src = tracks[idx].f;
             audio.play();
             context.resume();
         }
 
-        // 3. DATABASE LOGIC
+        // 3. DATABASE LOGIC (Points to your 'Votes' table)
         async function refreshList() {
             const container = document.getElementById('song-container');
             const { data: votes, error } = await sb.from('Votes').select('*');
@@ -81,12 +82,13 @@
         }
 
         async function handleVote(songId, column) {
+            // Calls your 'increment_vote' function in Supabase
             const { error } = await sb.rpc('increment_vote', { song: songId, col: column });
             if (error) console.error("Vote Error:", error);
             refreshList();
         }
 
-        // 4. THE VISUALIZER DRAWING LOOP
+        // 4. THE VISUALIZER DRAWING LOOP (Restores your frequency bars)
         function animate() {
             requestAnimationFrame(animate);
             canv.width = window.innerWidth;
@@ -108,7 +110,6 @@
             }
         }
 
-        // Run when page opens
         document.addEventListener('DOMContentLoaded', refreshList);
     </script>
 </body>
