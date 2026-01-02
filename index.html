@@ -1,68 +1,100 @@
-<div id="song-container"></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Music Site</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 20px; }
+        .track-card { 
+            background: #1e1e1e; 
+            margin: 10px auto; 
+            padding: 20px; 
+            border-radius: 12px; 
+            max-width: 400px;
+            border: 1px solid #333;
+        }
+        .vote-container { margin: 15px 0; }
+        button { 
+            padding: 8px 15px; 
+            margin: 5px; 
+            cursor: pointer; 
+            border-radius: 5px; 
+            border: none;
+            background: #333;
+            color: white;
+        }
+        button:hover { background: #444; }
+        .play-btn { background: #1DB954; font-weight: bold; }
+    </style>
+</head>
+<body>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-// 1. YOUR CONNECTION KEYS
-const SUPABASE_URL = 'https://gbywinmjvbgrtaazjlgm.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_Bli__qzQMokBoSXPrFPHKA_DXVXgM2a';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <h1>My Music Tracks</h1>
 
-// 2. YOUR SONG LIST
-const tracks = [
-  { id: "when_i_think_about_you", t: "When I Think About You", f: "songs/when-i-think-about-you.mp3" },
-  { id: "ariya", t: "Ariya", f: "songs/ariya.mp3" },
-  { id: "nice_like_this", t: "Nice Like This", f: "songs/nice-like-this.mp3" },
-  { id: "youre_my_home", t: "You're My Home", f: "songs/youre-my-home.mp3" },
-  { id: "feeling_down", t: "Feeling Down", f: "songs/feeling-down.mp3" }
-];
+    <div id="song-container">Loading tracks...</div>
 
-// 3. FETCH VOTES
-async function refreshList() {
-  const { data: votes, error } = await sb.from('Votes').select('*');
-  
-  // Find the container we just added
-  const container = document.getElementById('song-container');
-  
-  // This check prevents the "null" error you saw!
-  if (!container) return; 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  if (error) {
-    console.error("Fetch Error:", error.message);
-    return;
-  }
+    <script>
+        // 1. CONNECTION CONFIG
+        const SUPABASE_URL = 'https://gbywinmjvbgrtaazjlgm.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_Bli__qzQMokBoSXPrFPHKA_DXVXgM2a';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  container.innerHTML = tracks.map((s, index) => {
-    const v = votes?.find(row => row.song_id === s.id) || { likes: 0, dislikes: 0 };
-    return `
-      <div class="track-card" style="border:1px solid #ccc; padding:10px; margin:10px; border-radius:8px;">
-        <div>
-          <h3 style="margin:0;">${s.t}</h3>
-          <div class="vote-container">
-            <button onclick="handleVote('${s.id}', 'likes')">👍 ${v.likes}</button>
-            <button onclick="handleVote('${s.id}', 'dislikes')">👎 ${v.dislikes}</button>
-          </div>
-        </div>
-        <button onclick="initAndPlay('${index}')">Play</button>
-      </div>`;
-  }).join('');
-}
+        const tracks = [
+            { id: "when_i_think_about_you", t: "When I Think About You" },
+            { id: "ariya", t: "Ariya" },
+            { id: "nice_like_this", t: "Nice Like This" },
+            { id: "youre_my_home", t: "You're My Home" },
+            { id: "feeling_down", t: "Feeling Down" }
+        ];
 
-// 4. HANDLE VOTES
-async function handleVote(songId, column) {
-  const { error } = await sb.rpc('increment_vote', { 
-    song: songId, 
-    col: column 
-  });
+        // 2. WAIT FOR PAGE TO BE READY
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshList();
+        });
 
-  if (error) {
-    console.error("Vote Error:", error.message);
-  } else {
-    refreshList(); 
-  }
-}
+        // 3. FETCH DATA FROM 'Votes' TABLE
+        async function refreshList() {
+            const container = document.getElementById('song-container');
+            if (!container) return;
 
-// Initial Load
-refreshList();
+            const { data: votes, error } = await sb.from('Votes').select('*');
+            
+            if (error) {
+                console.error("Supabase Error:", error.message);
+                container.innerHTML = "Error loading votes. Check console.";
+                return;
+            }
 
-// ... [The rest of your audio/visualizer code goes here] ...
-</script>
+            container.innerHTML = tracks.map((s, index) => {
+                const v = votes?.find(row => row.song_id === s.id) || { likes: 0, dislikes: 0 };
+                return `
+                    <div class="track-card">
+                        <h3 style="margin:0;">${s.t}</h3>
+                        <div class="vote-container">
+                            <button onclick="handleVote('${s.id}', 'likes')">👍 ${v.likes}</button>
+                            <button onclick="handleVote('${s.id}', 'dislikes')">👎 ${v.dislikes}</button>
+                        </div>
+                        <button class="play-btn" onclick="alert('Playing ${s.t}...')">Play Song</button>
+                    </div>`;
+            }).join('');
+        }
+
+        // 4. UPDATE DATA VIA SQL FUNCTION
+        async function handleVote(songId, column) {
+            const { error } = await sb.rpc('increment_vote', { 
+                song: songId, 
+                col: column 
+            });
+
+            if (error) {
+                console.error("Vote Error:", error.message);
+            } else {
+                refreshList(); // Refresh numbers immediately
+            }
+        }
+    </script>
+</body>
+</html>
