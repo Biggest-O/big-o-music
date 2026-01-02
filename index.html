@@ -5,130 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Big O - Neon Rain Final</title> 
 <style>
-  body { 
-    margin: 0; 
-    font-family: 'Inter', sans-serif; 
-    background: #010103; 
-    color: white; 
-    padding-bottom: 220px; 
-    overflow-x: hidden; 
-  }
-
-  #viz { 
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    width: 100vw; 
-    height: 100vh; 
-    z-index: -1; 
-  }
-
-  header { 
-    height: 45vh; 
-    position: relative; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    background: transparent; 
-  }
-
-  h1 { 
-    font-size: clamp(3rem, 10vw, 6rem); 
-    font-weight: 900; 
-    letter-spacing: 15px; 
-    color: #fff; 
-    pointer-events: none; 
-    text-transform: uppercase; 
-  }
-
-  main { 
-    padding: 2rem 1rem; 
-    max-width: 700px; 
-    margin: auto; 
-    position: relative; 
-    z-index: 5; 
-  }
-
-  .track-card { 
-    background: rgba(255, 255, 255, 0.08); 
-    border: 1px solid rgba(0, 255, 255, 0.2); 
-    border-radius: 15px; 
-    padding: 1.5rem; 
-    margin-bottom: 1.2rem; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    backdrop-filter: blur(12px); 
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-  }
-
+  body { margin: 0; font-family: 'Inter', sans-serif; background: #010103; color: white; padding-bottom: 220px; overflow-x: hidden; }
+  #viz { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; }
+  header { height: 45vh; position: relative; display: flex; align-items: center; justify-content: center; background: transparent; }
+  h1 { font-size: clamp(3rem, 10vw, 6rem); font-weight: 900; letter-spacing: 15px; color: #fff; pointer-events: none; text-transform: uppercase; }
+  main { padding: 2rem 1rem; max-width: 700px; margin: auto; position: relative; z-index: 5; }
+  .track-card { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(0, 255, 255, 0.2); border-radius: 15px; padding: 1.5rem; margin-bottom: 1.2rem; display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(12px); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); }
   .vote-container { display: flex; gap: 10px; margin-top: 12px; }
-  
-  .vote-button { 
-    background: rgba(255, 255, 255, 0.1); 
-    border: 1px solid #444; 
-    color: white; 
-    padding: 8px 15px; 
-    border-radius: 8px; 
-    cursor: pointer; 
-    font-size: 0.9rem; 
-    transition: 0.2s; 
-  }
-  
-  .vote-button:hover { 
-    background: rgba(0, 255, 255, 0.2); 
-    border-color: #00ffff; 
-  }
-
-  button.action-btn { 
-    background: none; 
-    border: 1px solid #00ffff; 
-    color: #00ffff; 
-    padding: 10px 18px; 
-    border-radius: 50px; 
-    cursor: pointer; 
-    font-weight: 600; 
-    text-transform: uppercase; 
-    font-size: 0.7rem; 
-    transition: 0.2s; 
-  }
-
-  button.action-btn:hover { 
-    background: #00ffff; 
-    color: #000; 
-    box-shadow: 0 0 15px #00ffff; 
-  }
-
-  .active { 
-    background: #ff00ff !important; 
-    border-color: #ff00ff !important; 
-    color: white !important; 
-    box-shadow: 0 0 20px #ff00ff !important; 
-  }
-
-  .footer-player { 
-    position: fixed; 
-    bottom: 0; 
-    width: 100%; 
-    background: rgba(5, 5, 10, 0.9); 
-    border-top: 2px solid #00ffff; 
-    padding: 25px 10px; 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    z-index: 100; 
-    backdrop-filter: blur(15px);
-  }
-
-  #track-display { 
-    font-size: 0.75rem; 
-    color: #00ffff; 
-    letter-spacing: 2px; 
-    margin-bottom: 15px; 
-    font-weight: bold; 
-    text-align: center; 
-  }
-
+  .vote-button { background: rgba(255, 255, 255, 0.1); border: 1px solid #444; color: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+  .vote-button:hover { background: rgba(0, 255, 255, 0.2); border-color: #00ffff; }
+  button.action-btn { background: none; border: 1px solid #00ffff; color: #00ffff; padding: 10px 18px; border-radius: 50px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; transition: 0.2s; }
+  button.action-btn:hover { background: #00ffff; color: #000; box-shadow: 0 0 15px #00ffff; }
+  .active { background: #ff00ff !important; border-color: #ff00ff !important; color: white !important; box-shadow: 0 0 20px #ff00ff !important; }
+  .footer-player { position: fixed; bottom: 0; width: 100%; background: rgba(5, 5, 10, 0.9); border-top: 2px solid #00ffff; padding: 25px 10px; display: flex; flex-direction: column; align-items: center; z-index: 100; backdrop-filter: blur(15px); }
+  #track-display { font-size: 0.75rem; color: #00ffff; letter-spacing: 2px; margin-bottom: 15px; font-weight: bold; text-align: center; }
   .controls-row { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
 </style>
 </head>
@@ -189,18 +79,19 @@ async function refreshList() {
   }).join('');
 }
 
-// --- UPDATED VOTE ENGINE WITH LOCALSTORAGE ANTI-SPAM ---
+// --- UPDATED VOTE ENGINE: ALLOWS SWAPPING ---
 async function handleVote(songId, colName) {
   const storageKey = `voted_${songId}`;
-  
-  if (localStorage.getItem(storageKey)) {
-    alert("You've already voted for this track! ⚡");
+  const previousVote = localStorage.getItem(storageKey);
+
+  if (previousVote === colName) {
+    alert("You've already selected this choice! ⚡");
     return;
   }
 
   const { error } = await sb.rpc('increment_vote', { song: songId, col: colName });
   if (!error) {
-    localStorage.setItem(storageKey, 'true');
+    localStorage.setItem(storageKey, colName); // Store 'likes' or 'dislikes'
     setTimeout(refreshList, 300); 
   }
 }
@@ -209,10 +100,7 @@ function initAndPlay(i) {
   currentIdx = i; audio.src = tracks[currentIdx].f; audio.play();
   document.getElementById('track-display').innerText = "PLAYING: " + tracks[currentIdx].t;
   document.getElementById('playBtn').innerText = "Pause";
-  if (!context) { 
-    context = new (window.AudioContext || window.webkitAudioContext)(); 
-    setupVisualizer(); 
-  }
+  if (!context) { context = new (window.AudioContext || window.webkitAudioContext)(); setupVisualizer(); }
 }
 
 function toggle() { 
@@ -226,11 +114,7 @@ function next() {
   initAndPlay(currentIdx); 
 }
 
-function prev() { 
-  currentIdx = (currentIdx - 1 + tracks.length) % tracks.length; 
-  initAndPlay(currentIdx); 
-}
-
+function prev() { currentIdx = (currentIdx - 1 + tracks.length) % tracks.length; initAndPlay(currentIdx); }
 function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuffleBtn').classList.toggle('active', isShuffle); }
 function toggleRepeat() { isRepeat = !isRepeat; audio.loop = isRepeat; document.getElementById('repeatBtn').classList.toggle('active', isRepeat); }
 audio.onended = () => { if(!isRepeat) next(); };
