@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Big O - Official</title>
+<title>Big O - Neon Grid</title>
 <style>
   body{margin:0;font-family:'Segoe UI',Arial;background:#030308;color:white;padding-bottom:140px;overflow-x:hidden}
   header{height:55vh;position:relative;background:radial-gradient(circle at center, #101025 0%, #030308 100%);display:flex;align-items:center;justify-content:center;overflow:hidden;}
@@ -99,3 +99,85 @@ function playSong(i) {
 }
 
 function setupVisualizer() {
+  const c = document.getElementById('viz'), ctx = c.getContext('2d');
+  c.width = window.innerWidth; c.height = document.querySelector('header').offsetHeight;
+  an = ac.createAnalyser(); 
+  an.fftSize = 256; 
+  src = ac.createMediaElementSource(audio); 
+  src.connect(an); 
+  an.connect(ac.destination);
+  const data = new Uint8Array(an.frequencyBinCount);
+
+  function draw() {
+    requestAnimationFrame(draw);
+    an.getByteFrequencyData(data);
+    ctx.clearRect(0, 0, c.width, c.height);
+    
+    // Smooth Color Cycling
+    hue = (hue + 0.4) % 360;
+    const mainColor = `hsl(${hue}, 100%, 65%)`;
+    const accentColor = `hsl(${(hue + 60) % 360}, 100%, 65%)`;
+    
+    // Logo Glow
+    const logo = document.getElementById('logo');
+    logo.style.textShadow = `0 0 20px ${mainColor}, 0 0 50px ${accentColor}`;
+
+    // THE FLIPPING BOX GRID
+    const rows = 6;
+    const cols = 12;
+    const spacingX = c.width / cols;
+    const spacingY = c.height / rows;
+
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        const freqIdx = (i + j) % data.length;
+        const val = data[freqIdx]; // 0 to 255
+        
+        // Calculate box size and rotation based on music
+        const size = (val / 255) * spacingX * 0.8;
+        const opacity = val / 255;
+        
+        ctx.save();
+        ctx.translate(i * spacingX + spacingX/2, j * spacingY + spacingY/2);
+        ctx.rotate((val / 255) * Math.PI); // This creates the "flipping/rotating" effect
+        
+        ctx.strokeStyle = mainColor;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = opacity + 0.1;
+        ctx.strokeRect(-size/2, -size/2, size, size);
+        
+        // Add a small inner glow
+        ctx.fillStyle = accentColor;
+        ctx.globalAlpha = opacity * 0.2;
+        ctx.fillRect(-size/2, -size/2, size, size);
+        
+        ctx.restore();
+      }
+    }
+
+    // Bass Pulse for Logo
+    const bass = data[2] / 255;
+    logo.style.transform = `scale(${1 + bass * 0.1})`;
+  }
+  draw();
+}
+
+/* --- Controls --- */
+function togglePlay() { 
+  if(audio.paused) audio.play(); else audio.pause(); 
+  document.getElementById('playBtn').textContent = audio.paused ? "PLAY" : "PAUSE"; 
+}
+function nextSong() { playSong(isShuffle ? Math.floor(Math.random()*tracks.length) : (index+1)%tracks.length); }
+function prevSong() { playSong(index === 0 ? tracks.length-1 : index-1); }
+function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuffleBtn').classList.toggle('active'); }
+function toggleRepeat() { isRepeat = !isRepeat; audio.loop = isRepeat; document.getElementById('repeatBtn').classList.toggle('active'); }
+function vote(id, type) { likes[id][type]++; localStorage.setItem('likes', JSON.stringify(likes)); buildList(); }
+audio.onended = () => { if(!isRepeat) nextSong(); };
+window.onresize = () => { 
+    const c = document.getElementById('viz');
+    c.width = window.innerWidth; 
+    c.height = document.querySelector('header').offsetHeight; 
+};
+</script>
+</body>
+</html>
