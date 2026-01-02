@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Big O - Ultimate Edition</title>
+<title>Big O - Official Site</title>
 <style>
-  body{margin:0;font-family:'Segoe UI',Arial;background:#0b0b18;color:white;padding-bottom:140px}
-  header{height:45vh;position:relative;background:#120b24;display:flex;align-items:center;justify-content:center;overflow:hidden;border-bottom: 2px solid #333;}
-  h1{font-size:5rem;font-weight:900;z-index:2;text-shadow:0 0 25px #00ffff;transition:transform 0.1s ease;pointer-events:none}
+  body{margin:0;font-family:'Segoe UI',Arial;background:#0b0b18;color:white;padding-bottom:140px;overflow-x:hidden}
+  header{height:45vh;position:relative;background:linear-gradient(to bottom, #120b24, #0b0b18);display:flex;align-items:center;justify-content:center;overflow:hidden;border-bottom: 2px solid #333;}
+  h1{font-size:5.5rem;font-weight:900;z-index:2;text-shadow:0 0 30px #00ffff;transition:transform 0.1s ease;pointer-events:none}
   canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
   
   main{padding:2rem;max-width:700px;margin:auto}
@@ -37,7 +37,7 @@
 </main>
 
 <div class="controls">
-  <div id="now">Select a track to begin</div>
+  <div id="now">SELECT A SONG TO PLAY</div>
   <div class="btn-group">
     <button onclick="toggleShuffle()" id="shuffleBtn">🔀 SHUFFLE</button>
     <button onclick="prevSong()">⏮</button>
@@ -99,53 +99,47 @@ function playSong(i) {
       document.getElementById('now').textContent = "NOW PLAYING: " + tracks[index].t;
       document.getElementById('playBtn').textContent = "PAUSE";
     })
-    .catch(e => alert("Click Play again to start!"));
+    .catch(e => console.log("User must interact first"));
 }
 
-/* ===== THE ORIGINAL WAVE VISUALIZER ===== */
+/* ===== THE NETLIFY STYLE BAR VISUALIZER ===== */
 function setupVisualizer() {
   const c = document.getElementById('viz'), ctx = c.getContext('2d');
-  let prev = [], hue = 180;
-  
   c.width = window.innerWidth;
   c.height = document.querySelector('header').offsetHeight;
   
   an = ac.createAnalyser();
-  an.fftSize = 1024;
+  an.fftSize = 256; // Sharp, fast bars like your old version
   src = ac.createMediaElementSource(audio);
   src.connect(an);
   an.connect(ac.destination);
-  prev = new Array(an.fftSize).fill(128);
+
+  const data = new Uint8Array(an.frequencyBinCount);
 
   function draw() {
     requestAnimationFrame(draw);
-    const buf = new Uint8Array(an.fftSize);
-    an.getByteTimeDomainData(buf);
+    an.getByteFrequencyData(data);
     
     ctx.clearRect(0, 0, c.width, c.height);
-    let energy = 0;
-    for (let i = 0; i < buf.length; i++) energy += Math.abs(buf[i] - 128);
-    energy /= buf.length;
     
-    // Pulse the Big O Logo
-    document.getElementById('logo').style.transform = `scale(${1 + energy / 1500})`;
-    
-    hue = (hue + .1) % 360;
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = `hsla(${hue}, 100%, 65%, .8)`;
-    ctx.shadowColor = `hsla(${hue + 40}, 100%, 60%, 1)`;
-    ctx.shadowBlur = 25;
-    
-    ctx.beginPath();
-    const slice = c.width / buf.length;
+    let barWidth = (c.width / data.length) * 2.5;
+    let barHeight;
     let x = 0;
-    for (let i = 0; i < buf.length; i++) {
-      prev[i] = prev[i] * .85 + buf[i] * .15;
-      const y = (prev[i] / 128) * c.height / 2;
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      x += slice;
+
+    for (let i = 0; i < data.length; i++) {
+      barHeight = data[i] * 1.5;
+
+      // Color logic similar to your old site (Cycles through neon colors)
+      ctx.fillStyle = `rgb(0, ${barHeight + 100}, 255)`;
+      ctx.fillRect(x, c.height - barHeight, barWidth, barHeight);
+
+      x += barWidth + 1;
+      
+      // Pulse Logo to the bass (the first few bars)
+      if(i === 5) {
+        document.getElementById('logo').style.transform = `scale(${1 + data[i]/600})`;
+      }
     }
-    ctx.stroke();
   }
   draw();
 }
@@ -160,7 +154,9 @@ function prevSong() { playSong(index === 0 ? tracks.length-1 : index-1); }
 function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuffleBtn').classList.toggle('active'); }
 function toggleRepeat() { isRepeat = !isRepeat; audio.loop = isRepeat; document.getElementById('repeatBtn').classList.toggle('active'); }
 function vote(id, type) { likes[id][type]++; localStorage.setItem('likes', JSON.stringify(likes)); buildList(); }
+
 audio.onended = () => { if(!isRepeat) nextSong(); };
+
 window.onresize = () => { 
   const c = document.getElementById('viz');
   c.width = window.innerWidth;
