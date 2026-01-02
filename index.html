@@ -21,6 +21,10 @@
   button { background: none; border: 1px solid #00ffff; color: #00ffff; padding: 10px 20px; border-radius: 50px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; transition: 0.3s; }
   button:hover { background: #00ffff; color: #000; box-shadow: 0 0 15px #00ffff; }
   
+  /* Vote Buttons */
+  .vote-btn { border: 1px solid #333; color: #fff; padding: 6px 14px; margin-right: 5px; font-size: 0.8rem; }
+  .vote-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
   /* Shuffle/Repeat "ON" State */
   .active { background: #ff00ff !important; border-color: #ff00ff !important; color: white !important; box-shadow: 0 0 20px #ff00ff !important; }
 
@@ -62,14 +66,27 @@ const tracks = [
 let audio = new Audio(), currentIdx = 0, context, analyser, source, hue = 180;
 let isShuffle = false, isRepeat = false, drops = [];
 
+// Memory for Likes/Dislikes
+const storageKey = 'big_o_votes_v2';
+let votes = JSON.parse(localStorage.getItem(storageKey) || '{}');
+
 function refreshList() {
   const container = document.getElementById('song-container');
-  container.innerHTML = tracks.map(s => `
+  container.innerHTML = tracks.map(s => {
+    if(!votes[s.id]) votes[s.id] = {up:0, dn:0};
+    return `
       <div class="track-card">
-        <h3 style="margin:0; font-weight:300;">${s.t}</h3>
+        <div>
+          <h3 style="margin:0 0 10px 0; font-weight:300;">${s.t}</h3>
+          <div style="display:flex;">
+            <button class="vote-btn" onclick="handleVote(${s.id},'up')">👍 ${votes[s.id].up}</button>
+            <button class="vote-btn" onclick="handleVote(${s.id},'dn')">👎 ${votes[s.id].dn}</button>
+          </div>
+        </div>
         <button onclick="initAndPlay(${s.id})">Play</button>
       </div>
-    `).join('');
+    `;
+  }).join('');
 }
 refreshList();
 
@@ -83,6 +100,12 @@ function initAndPlay(i) {
     context = new (window.AudioContext || window.webkitAudioContext)(); 
     setupVisualizer(); 
   }
+}
+
+function handleVote(id, type) {
+  votes[id][type]++;
+  localStorage.setItem(storageKey, JSON.stringify(votes));
+  refreshList();
 }
 
 function setupVisualizer() {
@@ -117,7 +140,6 @@ function setupVisualizer() {
   animate();
 }
 
-/* Logic Fixes */
 function toggle() { 
   if(audio.paused) audio.play(); else audio.pause();
   document.getElementById('playBtn').innerText = audio.paused ? "Play" : "Pause";
