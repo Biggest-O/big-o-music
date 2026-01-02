@@ -3,26 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Big O - Official Site</title>
+<title>Big O - Restored Grid</title>
 <style>
-  body{margin:0;font-family:'Segoe UI',Arial;background:#0b0b18;color:white;padding-bottom:140px;overflow-x:hidden}
-  header{height:45vh;position:relative;background:linear-gradient(to bottom, #120b24, #0b0b18);display:flex;align-items:center;justify-content:center;overflow:hidden;border-bottom: 2px solid #333;}
-  h1{font-size:5.5rem;font-weight:900;z-index:2;text-shadow:0 0 30px #00ffff;transition:transform 0.1s ease;pointer-events:none}
+  body{margin:0;font-family:'Segoe UI',Arial;background:#030308;color:white;padding-bottom:140px;overflow-x:hidden}
+  header{height:55vh;position:relative;background:#030308;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  
+  /* Vibrant Neon Logo */
+  h1{font-size:6rem;font-weight:900;z-index:2;color:white;letter-spacing:15px;pointer-events:none;
+     text-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff; transition: 0.1s;}
+  
   canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
   
-  main{padding:2rem;max-width:700px;margin:auto}
-  .track{background:rgba(255,255,255,.05);padding:1.2rem;border-radius:12px;margin-bottom:1rem;border:1px solid #333; transition: 0.3s;}
-  .track:hover{background:rgba(0, 255, 255, 0.05); border-color: #00ffff;}
-  .track-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  main{padding:2rem;max-width:700px;margin:auto;position:relative;z-index:2}
+  .track{background:rgba(255,255,255,.05);padding:1.2rem;border-radius:12px;margin-bottom:1rem;border:1px solid #333;display:flex;justify-content:space-between;align-items:center}
   
-  button{background:#00ffff;border:none;padding:8px 12px;border-radius:5px;cursor:pointer;font-weight:bold;color:#0b0b18;transition:0.2s}
+  button{background:#00ffff;border:none;padding:10px 15px;border-radius:5px;cursor:pointer;font-weight:bold;color:#030308;transition:0.2s}
   button:hover{background:#fff;transform:scale(1.05)}
-  .btn-vote{background:#444;color:white;margin-left:5px}
+  .btn-vote{background:#222;color:white;margin-left:5px;border:1px solid #444}
   .active{background:#ff00ff !important;color:white}
   
-  .controls{position:fixed;bottom:0;left:0;width:100%;background:#1a1a2e;padding:15px;display:flex;flex-direction:column;align-items:center;border-top:3px solid #00ffff;z-index:10; box-shadow: 0 -10px 30px rgba(0,0,0,0.5);}
-  .btn-group{display:flex;gap:12px;margin-bottom:10px}
-  #now{color:#00ffff;font-size:1.1rem;margin-bottom:8px;font-weight:bold; text-transform: uppercase; letter-spacing: 1px;}
+  .controls{position:fixed;bottom:0;left:0;width:100%;background:#111;padding:20px;display:flex;flex-direction:column;align-items:center;border-top:2px solid #00ffff;z-index:10}
+  #now{color:#00ffff;font-size:0.9rem;margin-bottom:10px;font-weight:bold;text-transform:uppercase}
+  .btn-group{display:flex;gap:12px}
 </style>
 </head>
 <body>
@@ -33,17 +35,17 @@
 </header>
 
 <main>
-  <div id="list"></div>
+  <div id="song-list"></div>
 </main>
 
 <div class="controls">
-  <div id="now">SELECT A SONG TO PLAY</div>
+  <div id="now">SELECT A SONG</div>
   <div class="btn-group">
-    <button onclick="toggleShuffle()" id="shuffleBtn">🔀 SHUFFLE</button>
+    <button onclick="toggleShuffle()" id="shuffleBtn">🔀</button>
     <button onclick="prevSong()">⏮</button>
-    <button onclick="togglePlay()" id="playBtn" style="min-width: 80px;">PAUSE</button>
+    <button onclick="togglePlay()" id="playBtn">PAUSE</button>
     <button onclick="nextSong()">⏭</button>
-    <button onclick="toggleRepeat()" id="repeatBtn">🔁 REPEAT</button>
+    <button onclick="toggleRepeat()" id="repeatBtn">🔁</button>
   </div>
 </div>
 
@@ -56,112 +58,93 @@ const tracks=[
  {id:4,t:"Feeling Down",f:"songs/feeling-down.mp3"}
 ];
 
-let audio = new Audio();
-let index = 0, isShuffle = false, isRepeat = false;
-let ac = null, an = null, src = null;
+let audio = new Audio(), index = 0, isShuffle = false, isRepeat = false, ac = null, an = null, src = null, hue = 180;
 const likes = JSON.parse(localStorage.getItem('likes') || '{}');
 
-const list = document.getElementById('list');
 function buildList() {
-  list.innerHTML = '';
+  const listContainer = document.getElementById('song-list');
+  listContainer.innerHTML = '';
   tracks.forEach(s => {
     if(!likes[s.id]) likes[s.id] = {up:0, down:0};
     const d = document.createElement('div');
     d.className = 'track';
     d.innerHTML = `
-      <div class="track-info">
-        <span style="font-size:1.1rem;font-weight:bold">${s.t}</span>
-        <button onclick="playSong(${s.id})">PLAY</button>
-      </div>
       <div>
-        <button class="btn-vote" onclick="vote(${s.id},'up')">👍 ${likes[s.id].up}</button>
-        <button class="btn-vote" onclick="vote(${s.id},'down')">👎 ${likes[s.id].down}</button>
+        <div style="font-size:1.1rem;font-weight:bold">${s.t}</div>
+        <div style="margin-top:5px">
+          <button class="btn-vote" onclick="vote(${s.id},'up')">👍 ${likes[s.id].up}</button>
+          <button class="btn-vote" onclick="vote(${s.id},'down')">👎 ${likes[s.id].down}</button>
+        </div>
       </div>
+      <button onclick="playSong(${s.id})">PLAY</button>
     `;
-    list.appendChild(d);
+    listContainer.appendChild(d);
   });
 }
-buildList();
 
 function playSong(i) {
-  index = i;
-  audio.src = tracks[index].f;
-  audio.load();
-  
-  if (!ac) {
-    ac = new (window.AudioContext || window.webkitAudioContext)();
-    setupVisualizer();
-  }
+  index = i; audio.src = tracks[index].f; audio.load();
+  if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); setupVisualizer(); }
   if (ac.state === 'suspended') ac.resume();
-
-  audio.play()
-    .then(() => {
-      document.getElementById('now').textContent = "NOW PLAYING: " + tracks[index].t;
-      document.getElementById('playBtn').textContent = "PAUSE";
-    })
-    .catch(e => console.log("User must interact first"));
+  audio.play().then(() => {
+    document.getElementById('now').textContent = "NOW PLAYING: " + tracks[index].t;
+    document.getElementById('playBtn').textContent = "PAUSE";
+  });
 }
 
-/* ===== THE NETLIFY STYLE BAR VISUALIZER ===== */
 function setupVisualizer() {
   const c = document.getElementById('viz'), ctx = c.getContext('2d');
-  c.width = window.innerWidth;
-  c.height = document.querySelector('header').offsetHeight;
-  
-  an = ac.createAnalyser();
-  an.fftSize = 256; // Sharp, fast bars like your old version
-  src = ac.createMediaElementSource(audio);
-  src.connect(an);
-  an.connect(ac.destination);
-
+  c.width = window.innerWidth; c.height = document.querySelector('header').offsetHeight;
+  an = ac.createAnalyser(); an.fftSize = 256; 
+  src = ac.createMediaElementSource(audio); src.connect(an); an.connect(ac.destination);
   const data = new Uint8Array(an.frequencyBinCount);
 
   function draw() {
     requestAnimationFrame(draw);
     an.getByteFrequencyData(data);
-    
     ctx.clearRect(0, 0, c.width, c.height);
     
-    let barWidth = (c.width / data.length) * 2.5;
-    let barHeight;
-    let x = 0;
+    // Smooth Color Cycle
+    hue = (hue + 0.5) % 360; 
+    const color = `hsl(${hue}, 100%, 50%)`;
+    document.getElementById('logo').style.textShadow = `0 0 20px ${color}, 0 0 40px #ff00ff`;
 
-    for (let i = 0; i < data.length; i++) {
-      barHeight = data[i] * 1.5;
+    // FIXED GRID SPACING (Spreading them out)
+    const rows = 6, cols = 12;
+    const w = c.width / cols, h = c.height / rows;
 
-      // Color logic similar to your old site (Cycles through neon colors)
-      ctx.fillStyle = `rgb(0, ${barHeight + 100}, 255)`;
-      ctx.fillRect(x, c.height - barHeight, barWidth, barHeight);
-
-      x += barWidth + 1;
-      
-      // Pulse Logo to the bass (the first few bars)
-      if(i === 5) {
-        document.getElementById('logo').style.transform = `scale(${1 + data[i]/600})`;
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        // This math spreads the data across the whole grid
+        const s = data[(i + j * cols) % data.length];
+        const size = (s / 255) * w * 0.7; // 0.7 makes them not touch each other
+        
+        ctx.save();
+        ctx.translate(i * w + w / 2, j * h + h / 2);
+        ctx.rotate((s / 255) * Math.PI); 
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-size / 2, -size / 2, size, size);
+        ctx.restore();
       }
     }
+    
+    const bass = data[2] / 255;
+    document.getElementById('logo').style.transform = `scale(${1 + bass * 0.1})`;
   }
   draw();
 }
 
-/* --- Controls --- */
-function togglePlay() {
-  if(audio.paused) audio.play(); else audio.pause();
-  document.getElementById('playBtn').textContent = audio.paused ? "PLAY" : "PAUSE";
-}
+/* Controls */
+function togglePlay() { if(audio.paused) audio.play(); else audio.pause(); document.getElementById('playBtn').textContent = audio.paused ? "PLAY" : "PAUSE"; }
 function nextSong() { playSong(isShuffle ? Math.floor(Math.random()*tracks.length) : (index+1)%tracks.length); }
 function prevSong() { playSong(index === 0 ? tracks.length-1 : index-1); }
 function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuffleBtn').classList.toggle('active'); }
 function toggleRepeat() { isRepeat = !isRepeat; audio.loop = isRepeat; document.getElementById('repeatBtn').classList.toggle('active'); }
 function vote(id, type) { likes[id][type]++; localStorage.setItem('likes', JSON.stringify(likes)); buildList(); }
-
 audio.onended = () => { if(!isRepeat) nextSong(); };
-
-window.onresize = () => { 
-  const c = document.getElementById('viz');
-  c.width = window.innerWidth;
-  c.height = document.querySelector('header').offsetHeight;
-};
+window.onresize = () => { c.width = window.innerWidth; c.height = document.querySelector('header').offsetHeight; };
+buildList();
 </script>
 </body>
 </html>
