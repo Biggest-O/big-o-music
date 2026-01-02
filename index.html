@@ -1,6 +1,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// 1. DATABASE CONNECTION
+// 1. SUPABASE CONNECTION
 const SUPABASE_URL = 'https://gbywinmjvbgrtaazjlgm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Bli__qzQMokBoSXPrFPHKA_DXVXgM2a';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -16,14 +16,14 @@ const tracks = [
 let audio = new Audio(), currentIdx = 0, context, analyser, source, hue = 180;
 let isShuffle = false, isRepeat = false, drops = [];
 
-// 2. FETCH VOTES FROM SUPABASE (Replaces localStorage)
+// 2. FETCH REAL VOTES FROM SUPABASE
 async function refreshList() {
   const { data: votesData, error } = await sb.from('Votes').select('*');
-  if (error) console.error("Error fetching:", error);
+  if (error) console.error("Database Fetch Error:", error);
 
   const container = document.getElementById('song-container');
   container.innerHTML = tracks.map((s, index) => {
-    // Find matching row in Supabase or default to 0
+    // This matches your song IDs to the rows in your screenshot
     const row = votesData?.find(r => r.song_id === s.id) || { likes: 0, dislikes: 0 };
     
     return `
@@ -41,7 +41,7 @@ async function refreshList() {
   }).join('');
 }
 
-// 3. SEND VOTE TO SUPABASE
+// 3. SEND VOTE TO SUPABASE FUNCTION
 async function handleVote(songId, type) {
   const { error } = await sb.rpc('increment_vote', { 
     song: songId, 
@@ -49,16 +49,17 @@ async function handleVote(songId, type) {
   });
 
   if (error) {
-    console.error("Supabase Vote Error:", error);
+    console.error("Vote Error:", error.message);
+    alert("Check your Console! If it says 403, your RLS Policy isn't set to ALL yet.");
   } else {
-    refreshList(); // Redraw with fresh numbers from the cloud
+    refreshList(); // Redraw with new numbers from Supabase
   }
 }
 
 // Initial Build
 refreshList();
 
-// --- ALL YOUR VISUALIZER & CONTROL LOGIC BELOW (STAYS THE SAME) ---
+// --- ALL YOUR NEON VISUALIZER LOGIC BELOW ---
 
 function initAndPlay(i) {
   currentIdx = i; audio.src = tracks[currentIdx].f; audio.play();
