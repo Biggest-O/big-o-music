@@ -3,29 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Big O - Neon Rain</title> 
+<title>Big O - Neon Rain Official</title> 
 <style>
-  body { margin: 0; font-family: 'Inter', sans-serif; background: #010103; color: white; padding-bottom: 160px; overflow-x: hidden; }
-  header { height: 60vh; position: relative; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; border-bottom: 1px solid rgba(0,255,255,0.1); }
+  body { margin: 0; font-family: 'Inter', sans-serif; background: #010103; color: white; padding-bottom: 180px; overflow-x: hidden; }
+  header { height: 60vh; position: relative; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; }
   
-  /* The Neon Logo */
-  h1 { font-size: 7rem; font-weight: 900; z-index: 10; letter-spacing: 20px; color: #fff; pointer-events: none; transition: 0.1s; }
+  /* Neon Logo */
+  h1 { font-size: 7rem; font-weight: 900; z-index: 10; letter-spacing: 20px; color: #fff; pointer-events: none; }
   
   canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 
-  /* Song List Styles */
+  /* Song Cards */
   main { padding: 3rem 1rem; max-width: 800px; margin: auto; }
-  .track-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 1.5rem; margin-bottom: 1.2rem; display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(10px); }
+  .track-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 1.5rem; margin-bottom: 1.2rem; display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(10px); }
   
-  /* Buttons */
-  button { background: none; border: 1px solid #00ffff; color: #00ffff; padding: 10px 24px; border-radius: 50px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; transition: 0.3s; }
-  button:hover { background: #00ffff; color: #000; box-shadow: 0 0 20px rgba(0,255,255,0.4); }
-  .active { background: #ff00ff !important; border-color: #ff00ff !important; color: white !important; }
+  /* Global Button Style */
+  button { background: none; border: 1px solid #00ffff; color: #00ffff; padding: 10px 20px; border-radius: 50px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; transition: 0.3s; }
+  button:hover { background: #00ffff; color: #000; box-shadow: 0 0 15px #00ffff; }
+  
+  /* Shuffle/Repeat "ON" State */
+  .active { background: #ff00ff !important; border-color: #ff00ff !important; color: white !important; box-shadow: 0 0 20px #ff00ff !important; }
 
-  /* Control Bar */
-  .footer-player { position: fixed; bottom: 0; width: 100%; background: rgba(1,1,3,0.95); border-top: 1px solid rgba(255,255,255,0.1); padding: 25px; display: flex; flex-direction: column; align-items: center; z-index: 100; backdrop-filter: blur(15px); }
-  #track-name { font-size: 0.7rem; color: #00ffff; letter-spacing: 4px; margin-bottom: 15px; opacity: 0.8; font-weight: bold; }
-  .btn-group { display: flex; gap: 15px; align-items: center; }
+  /* Fixed Bottom Player */
+  .footer-player { position: fixed; bottom: 0; width: 100%; background: #010103; border-top: 1px solid rgba(0,255,255,0.2); padding: 30px 10px; display: flex; flex-direction: column; align-items: center; z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); }
+  #track-display { font-size: 0.75rem; color: #00ffff; letter-spacing: 3px; margin-bottom: 20px; font-weight: bold; }
+  .controls-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; justify-content: center; }
 </style>
 </head>
 <body>
@@ -38,13 +40,13 @@
 <main id="song-container"></main>
 
 <div class="footer-player">
-  <div id="track-name">READY TO PLAY</div>
-  <div class="btn-group">
-    <button onclick="toggleShuffle()" id="shuffleBtn">Shuffle</button>
+  <div id="track-display">READY TO PLAY</div>
+  <div class="controls-row">
+    <button id="shuffleBtn" onclick="toggleShuffle()">Shuffle</button>
     <button onclick="prev()">Prev</button>
-    <button onclick="toggle()" id="playBtn" style="min-width: 100px;">Play</button>
+    <button id="playBtn" onclick="toggle()" style="min-width: 100px;">Play</button>
     <button onclick="next()">Next</button>
-    <button onclick="toggleRepeat()" id="repeatBtn">Repeat</button>
+    <button id="repeatBtn" onclick="toggleRepeat()">Repeat</button>
   </div>
 </div>
 
@@ -64,18 +66,23 @@ function refreshList() {
   const container = document.getElementById('song-container');
   container.innerHTML = tracks.map(s => `
       <div class="track-card">
-        <h3>${s.t}</h3>
-        <button onclick="initAndPlay(${s.id})">Play Track</button>
+        <h3 style="margin:0; font-weight:300;">${s.t}</h3>
+        <button onclick="initAndPlay(${s.id})">Play</button>
       </div>
     `).join('');
 }
 refreshList();
 
 function initAndPlay(i) {
-  currentIdx = i; audio.src = tracks[currentIdx].f; audio.play();
-  document.getElementById('track-name').innerText = "NOW PLAYING: " + tracks[currentIdx].t;
+  currentIdx = i; 
+  audio.src = tracks[currentIdx].f; 
+  audio.play();
+  document.getElementById('track-display').innerText = "NOW PLAYING: " + tracks[currentIdx].t;
   document.getElementById('playBtn').innerText = "Pause";
-  if (!context) { context = new AudioContext(); setupVisualizer(); }
+  if (!context) { 
+    context = new (window.AudioContext || window.webkitAudioContext)(); 
+    setupVisualizer(); 
+  }
 }
 
 function setupVisualizer() {
@@ -85,7 +92,7 @@ function setupVisualizer() {
   source.connect(analyser); analyser.connect(context.destination);
   const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-  for(let i=0; i<60; i++) drops.push({x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight, s: 2+Math.random()*4});
+  for(let i=0; i<70; i++) drops.push({x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight, s: 2+Math.random()*4});
 
   function animate() {
     requestAnimationFrame(animate);
@@ -93,42 +100,56 @@ function setupVisualizer() {
     analyser.getByteFrequencyData(dataArray);
     
     ctx.fillStyle = 'black'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    hue = (hue + 0.4) % 360;
+    hue = (hue + 0.5) % 360;
     const color = `hsl(${hue}, 100%, 50%)`;
-    document.getElementById('logo').style.textShadow = `0 0 20px ${color}, 0 0 40px ${color}`;
+    document.getElementById('logo').style.textShadow = `0 0 20px ${color}, 0 0 50px ${color}`;
 
     const bass = dataArray[2] / 255;
     drops.forEach(d => {
       ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
-      ctx.moveTo(d.x, d.y); ctx.lineTo(d.x, d.y + 15 + (bass * 40));
+      ctx.moveTo(d.x, d.y); ctx.lineTo(d.x, d.y + 15 + (bass * 50));
       ctx.stroke();
-      d.y += d.s + (bass * 12);
+      d.y += d.s + (bass * 15);
       if(d.y > canvas.height) { d.y = -20; d.x = Math.random()*canvas.width; }
     });
-    document.getElementById('logo').style.transform = `scale(${1 + (bass * 0.08)})`;
+    document.getElementById('logo').style.transform = `scale(${1 + (bass * 0.1)})`;
   }
   animate();
 }
 
-/* Controls Logic */
+/* Logic Fixes */
 function toggle() { 
   if(audio.paused) audio.play(); else audio.pause();
   document.getElementById('playBtn').innerText = audio.paused ? "Play" : "Pause";
 }
+
 function next() { 
-  let nextIdx = isShuffle ? Math.floor(Math.random()*tracks.length) : (currentIdx + 1) % tracks.length;
-  initAndPlay(nextIdx); 
+  if (isShuffle) {
+    let newIdx;
+    do { newIdx = Math.floor(Math.random() * tracks.length); } while (newIdx === currentIdx);
+    currentIdx = newIdx;
+  } else {
+    currentIdx = (currentIdx + 1) % tracks.length;
+  }
+  initAndPlay(currentIdx); 
 }
-function prev() { initAndPlay((currentIdx - 1 + tracks.length) % tracks.length); }
+
+function prev() { 
+  currentIdx = (currentIdx - 1 + tracks.length) % tracks.length;
+  initAndPlay(currentIdx); 
+}
+
 function toggleShuffle() { 
   isShuffle = !isShuffle; 
-  document.getElementById('shuffleBtn').classList.toggle('active'); 
+  document.getElementById('shuffleBtn').classList.toggle('active', isShuffle); 
 }
+
 function toggleRepeat() { 
   isRepeat = !isRepeat; 
   audio.loop = isRepeat;
-  document.getElementById('repeatBtn').classList.toggle('active'); 
+  document.getElementById('repeatBtn').classList.toggle('active', isRepeat); 
 }
+
 audio.onended = () => { if(!isRepeat) next(); };
 </script>
 </body>
