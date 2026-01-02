@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Big O - Full Edition</title>
+<title>Big O - Ultimate Edition</title>
 <style>
   body{margin:0;font-family:'Segoe UI',Arial;background:#0b0b18;color:white;padding-bottom:140px}
-  header{height:40vh;position:relative;background:#120b24;display:flex;align-items:center;justify-content:center;overflow:hidden}
-  h1{font-size:5rem;font-weight:900;z-index:2;text-shadow:0 0 20px #00ffff;transition:transform 0.1s ease; pointer-events: none;}
-  canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;opacity:0.6}
+  header{height:45vh;position:relative;background:#120b24;display:flex;align-items:center;justify-content:center;overflow:hidden;border-bottom: 2px solid #333;}
+  h1{font-size:5rem;font-weight:900;z-index:2;text-shadow:0 0 25px #00ffff;transition:transform 0.1s ease;pointer-events:none}
+  canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
   
   main{padding:2rem;max-width:700px;margin:auto}
-  .track{background:rgba(255,255,255,.05);padding:1.2rem;border-radius:12px;margin-bottom:1rem;border:1px solid #333}
+  .track{background:rgba(255,255,255,.05);padding:1.2rem;border-radius:12px;margin-bottom:1rem;border:1px solid #333; transition: 0.3s;}
+  .track:hover{background:rgba(0, 255, 255, 0.05); border-color: #00ffff;}
   .track-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   
   button{background:#00ffff;border:none;padding:8px 12px;border-radius:5px;cursor:pointer;font-weight:bold;color:#0b0b18;transition:0.2s}
@@ -19,9 +20,9 @@
   .btn-vote{background:#444;color:white;margin-left:5px}
   .active{background:#ff00ff !important;color:white}
   
-  .controls{position:fixed;bottom:0;left:0;width:100%;background:#1a1a2e;padding:15px;display:flex;flex-direction:column;align-items:center;border-top:2px solid #00ffff;z-index:10}
-  .btn-group{display:flex;gap:10px;margin-bottom:10px}
-  #now{color:#00ffff;font-size:1rem;margin-bottom:8px;font-weight:bold}
+  .controls{position:fixed;bottom:0;left:0;width:100%;background:#1a1a2e;padding:15px;display:flex;flex-direction:column;align-items:center;border-top:3px solid #00ffff;z-index:10; box-shadow: 0 -10px 30px rgba(0,0,0,0.5);}
+  .btn-group{display:flex;gap:12px;margin-bottom:10px}
+  #now{color:#00ffff;font-size:1.1rem;margin-bottom:8px;font-weight:bold; text-transform: uppercase; letter-spacing: 1px;}
 </style>
 </head>
 <body>
@@ -36,13 +37,13 @@
 </main>
 
 <div class="controls">
-  <div id="now">Click PLAY on a song below</div>
+  <div id="now">Select a track to begin</div>
   <div class="btn-group">
-    <button onclick="toggleShuffle()" id="shuffleBtn">🔀 Shuffle: OFF</button>
+    <button onclick="toggleShuffle()" id="shuffleBtn">🔀 SHUFFLE</button>
     <button onclick="prevSong()">⏮</button>
-    <button onclick="togglePlay()" id="playBtn">PAUSE</button>
+    <button onclick="togglePlay()" id="playBtn" style="min-width: 80px;">PAUSE</button>
     <button onclick="nextSong()">⏭</button>
-    <button onclick="toggleRepeat()" id="repeatBtn">🔁 Repeat: OFF</button>
+    <button onclick="toggleRepeat()" id="repeatBtn">🔁 REPEAT</button>
   </div>
 </div>
 
@@ -55,7 +56,6 @@ const tracks=[
  {id:4,t:"Feeling Down",f:"songs/feeling-down.mp3"}
 ];
 
-// 1. Create Audio element WITHOUT crossOrigin (fixes local blocking)
 let audio = new Audio();
 let index = 0, isShuffle = false, isRepeat = false;
 let ac = null, an = null, src = null;
@@ -71,7 +71,7 @@ function buildList() {
     d.innerHTML = `
       <div class="track-info">
         <span style="font-size:1.1rem;font-weight:bold">${s.t}</span>
-        <button onclick="playSong(${s.id})">PLAY SONG</button>
+        <button onclick="playSong(${s.id})">PLAY</button>
       </div>
       <div>
         <button class="btn-vote" onclick="vote(${s.id},'up')">👍 ${likes[s.id].up}</button>
@@ -86,8 +86,8 @@ buildList();
 function playSong(i) {
   index = i;
   audio.src = tracks[index].f;
+  audio.load();
   
-  // 2. Start Audio Context on user click (Mandatory for Visualizer)
   if (!ac) {
     ac = new (window.AudioContext || window.webkitAudioContext)();
     setupVisualizer();
@@ -99,41 +99,53 @@ function playSong(i) {
       document.getElementById('now').textContent = "NOW PLAYING: " + tracks[index].t;
       document.getElementById('playBtn').textContent = "PAUSE";
     })
-    .catch(e => {
-      console.log(e);
-      alert("Opera GX is blocking the audio. Try clicking the page first, or use Google Chrome!");
-    });
+    .catch(e => alert("Click Play again to start!"));
 }
 
+/* ===== THE ORIGINAL WAVE VISUALIZER ===== */
 function setupVisualizer() {
   const c = document.getElementById('viz'), ctx = c.getContext('2d');
+  let prev = [], hue = 180;
+  
   c.width = window.innerWidth;
   c.height = document.querySelector('header').offsetHeight;
   
   an = ac.createAnalyser();
-  an.fftSize = 256;
-  
-  // 3. Connect audio to visualizer
-  try {
-    src = ac.createMediaElementSource(audio);
-    src.connect(an);
-    an.connect(ac.destination);
-  } catch(e) {
-    // Fallback if visualizer is blocked by security
-    audio.connect(ac.destination); 
-  }
+  an.fftSize = 1024;
+  src = ac.createMediaElementSource(audio);
+  src.connect(an);
+  an.connect(ac.destination);
+  prev = new Array(an.fftSize).fill(128);
 
-  const data = new Uint8Array(an.frequencyBinCount);
   function draw() {
     requestAnimationFrame(draw);
-    an.getByteFrequencyData(data);
-    ctx.clearRect(0,0,c.width,c.height);
-    let space = c.width / 64;
-    for(let i=0; i<64; i++) {
-      ctx.fillStyle = `hsl(${i * 5}, 100%, 50%)`;
-      ctx.fillRect(i * space, c.height - data[i], space - 2, data[i]);
-      if(i === 10) document.getElementById('logo').style.transform = `scale(${1 + data[i]/500})`;
+    const buf = new Uint8Array(an.fftSize);
+    an.getByteTimeDomainData(buf);
+    
+    ctx.clearRect(0, 0, c.width, c.height);
+    let energy = 0;
+    for (let i = 0; i < buf.length; i++) energy += Math.abs(buf[i] - 128);
+    energy /= buf.length;
+    
+    // Pulse the Big O Logo
+    document.getElementById('logo').style.transform = `scale(${1 + energy / 1500})`;
+    
+    hue = (hue + .1) % 360;
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = `hsla(${hue}, 100%, 65%, .8)`;
+    ctx.shadowColor = `hsla(${hue + 40}, 100%, 60%, 1)`;
+    ctx.shadowBlur = 25;
+    
+    ctx.beginPath();
+    const slice = c.width / buf.length;
+    let x = 0;
+    for (let i = 0; i < buf.length; i++) {
+      prev[i] = prev[i] * .85 + buf[i] * .15;
+      const y = (prev[i] / 128) * c.height / 2;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      x += slice;
     }
+    ctx.stroke();
   }
   draw();
 }
@@ -149,6 +161,11 @@ function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuf
 function toggleRepeat() { isRepeat = !isRepeat; audio.loop = isRepeat; document.getElementById('repeatBtn').classList.toggle('active'); }
 function vote(id, type) { likes[id][type]++; localStorage.setItem('likes', JSON.stringify(likes)); buildList(); }
 audio.onended = () => { if(!isRepeat) nextSong(); };
+window.onresize = () => { 
+  const c = document.getElementById('viz');
+  c.width = window.innerWidth;
+  c.height = document.querySelector('header').offsetHeight;
+};
 </script>
 </body>
 </html>
