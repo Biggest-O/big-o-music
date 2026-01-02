@@ -5,25 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Big O - Neon Grid Official</title>
 <style>
-  body{margin:0;font-family:'Segoe UI',Arial;background:#030308;color:white;padding-bottom:140px;overflow-x:hidden}
-  header{height:55vh;position:relative;background:radial-gradient(circle at center, #101025 0%, #030308 100%);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  body{margin:0;font-family:'Segoe UI',Arial;background:#020205;color:white;padding-bottom:140px;overflow-x:hidden}
+  header{height:55vh;position:relative;background:radial-gradient(circle at center, #0a0a1a 0%, #020205 100%);display:flex;align-items:center;justify-content:center;overflow:hidden;border-bottom: 1px solid rgba(0,255,255,0.1)}
   
-  /* Vibrant Neon Logo */
-  h1{font-size:6rem;font-weight:900;z-index:2;color:white;letter-spacing:15px;pointer-events:none;
-     text-shadow: 0 0 20px #00ffff, 0 0 40px #ff00ff; transition: text-shadow 0.3s ease;}
+  /* High-Intensity Neon Logo */
+  h1{font-size:6.5rem;font-weight:900;z-index:2;color:white;letter-spacing:18px;pointer-events:none;
+     text-shadow: 0 0 15px #fff, 0 0 30px #00ffff, 0 0 60px #ff00ff; transition: transform 0.1s ease;}
   
-  canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
+  canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;opacity:0.8}
   
   main{padding:2rem;max-width:750px;margin:auto;position:relative;z-index:2}
-  .track{background:rgba(255,255,255,.02);padding:1.5rem;border-radius:15px;margin-bottom:1.5rem;border:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center}
+  .track{background:rgba(255,255,255,.02);padding:1.5rem;border-radius:15px;margin-bottom:1.5rem;border:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(5px);transition:0.3s}
+  .track:hover{border-color:rgba(0,255,255,0.5);background:rgba(255,255,255,0.05)}
   
   button{background:transparent;border:1px solid #00ffff;padding:10px 20px;border-radius:30px;cursor:pointer;font-weight:bold;color:#00ffff;text-transform:uppercase;font-size:0.75rem;letter-spacing:1px;transition:0.3s}
-  button:hover{background:#00ffff;color:#030308;box-shadow:0 0 15px #00ffff}
-  .btn-vote{border:1px solid rgba(255,255,255,0.2);color:white;margin-left:8px;padding:8px 15px}
+  button:hover{background:#00ffff;color:#020205;box-shadow:0 0 20px #00ffff}
+  .btn-vote{border:1px solid rgba(255,255,255,0.1);color:white;margin-left:8px;padding:8px 15px;border-radius:10px}
   .active{background:#ff00ff !important;border-color:#ff00ff !important;color:white !important}
   
-  .controls{position:fixed;bottom:0;left:0;width:100%;background:rgba(3,3,8,0.95);backdrop-filter:blur(20px);padding:20px;display:flex;flex-direction:column;align-items:center;border-top:1px solid rgba(255,255,255,0.1);z-index:10}
-  #now{color:#00ffff;font-size:0.8rem;margin-bottom:12px;letter-spacing:3px;opacity:0.7}
+  .controls{position:fixed;bottom:0;left:0;width:100%;background:rgba(2,2,5,0.95);backdrop-filter:blur(25px);padding:20px;display:flex;flex-direction:column;align-items:center;border-top:1px solid rgba(255,255,255,0.1);z-index:10}
+  #now{color:#00ffff;font-size:0.8rem;margin-bottom:12px;letter-spacing:3px;opacity:0.8;font-weight:bold}
   .btn-group{display:flex;gap:15px}
 </style>
 </head>
@@ -39,12 +40,12 @@
 </main>
 
 <div class="controls">
-  <div id="now">SELECT A TRACK</div>
+  <div id="now">AWAITING SELECTION</div>
   <div class="btn-group">
     <button onclick="toggleShuffle()" id="shuffleBtn">Shuffle</button>
-    <button onclick="prevSong()">Prev</button>
+    <button onclick="prevSong()">⏮</button>
     <button onclick="togglePlay()" id="playBtn" style="min-width:100px">Pause</button>
-    <button onclick="nextSong()">Next</button>
+    <button onclick="nextSong()">⏭</button>
     <button onclick="toggleRepeat()" id="repeatBtn">Repeat</button>
   </div>
 </div>
@@ -84,13 +85,8 @@ function buildList() {
 }
 
 function playSong(i) {
-  index = i; 
-  audio.src = tracks[index].f; 
-  audio.load();
-  if (!ac) { 
-    ac = new (window.AudioContext || window.webkitAudioContext)(); 
-    setupVisualizer(); 
-  }
+  index = i; audio.src = tracks[index].f; audio.load();
+  if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); setupVisualizer(); }
   if (ac.state === 'suspended') ac.resume();
   audio.play().then(() => {
     document.getElementById('now').textContent = "NOW PLAYING: " + tracks[index].t;
@@ -101,11 +97,8 @@ function playSong(i) {
 function setupVisualizer() {
   const c = document.getElementById('viz'), ctx = c.getContext('2d');
   c.width = window.innerWidth; c.height = document.querySelector('header').offsetHeight;
-  an = ac.createAnalyser(); 
-  an.fftSize = 256; 
-  src = ac.createMediaElementSource(audio); 
-  src.connect(an); 
-  an.connect(ac.destination);
+  an = ac.createAnalyser(); an.fftSize = 256; 
+  src = ac.createMediaElementSource(audio); src.connect(an); an.connect(ac.destination);
   const data = new Uint8Array(an.frequencyBinCount);
 
   function draw() {
@@ -113,15 +106,15 @@ function setupVisualizer() {
     an.getByteFrequencyData(data);
     ctx.clearRect(0, 0, c.width, c.height);
     
-    hue = (hue + 0.4) % 360;
+    hue = (hue + 0.3) % 360;
     const mainColor = `hsl(${hue}, 100%, 65%)`;
-    const accentColor = `hsl(${(hue + 60) % 360}, 100%, 65%)`;
+    const accentColor = `hsl(${(hue + 90) % 360}, 100%, 65%)`;
     
     const logo = document.getElementById('logo');
     logo.style.textShadow = `0 0 20px ${mainColor}, 0 0 50px ${accentColor}`;
 
-    const rows = 6;
-    const cols = 12;
+    const rows = 8;
+    const cols = 15;
     const spacingX = c.width / cols;
     const spacingY = c.height / rows;
 
@@ -129,51 +122,41 @@ function setupVisualizer() {
       for (let j = 0; j < rows; j++) {
         const freqIdx = (i + j) % data.length;
         const val = data[freqIdx];
-        const size = (val / 255) * spacingX * 0.8;
-        const opacity = val / 255;
+        // The "Secret Sauce" - makes them feel like they're floating
+        const floatOffset = Math.sin(Date.now() / 1000 + (i*j)) * 10;
+        const size = (val / 255) * spacingX * 0.9;
         
         ctx.save();
-        ctx.translate(i * spacingX + spacingX/2, j * spacingY + spacingY/2);
-        ctx.rotate((val / 255) * Math.PI); 
+        ctx.translate(i * spacingX + spacingX/2, j * spacingY + spacingY/2 + floatOffset);
+        ctx.rotate((val / 255) * Math.PI + (Date.now() / 2000)); 
         
         ctx.strokeStyle = mainColor;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = opacity + 0.1;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = (val / 255) + 0.1;
         ctx.strokeRect(-size/2, -size/2, size, size);
         
+        // Soft Glow inner
         ctx.fillStyle = accentColor;
-        ctx.globalAlpha = opacity * 0.2;
+        ctx.globalAlpha = (val / 255) * 0.15;
         ctx.fillRect(-size/2, -size/2, size, size);
         ctx.restore();
       }
     }
     const bass = data[2] / 255;
-    logo.style.transform = `scale(${1 + bass * 0.1})`;
+    logo.style.transform = `scale(${1 + bass * 0.08})`;
   }
   draw();
 }
 
-// Controls
-function togglePlay() { 
-  if(audio.paused) audio.play(); else audio.pause(); 
-  document.getElementById('playBtn').textContent = audio.paused ? "PLAY" : "PAUSE"; 
-}
+/* Logic */
+function togglePlay() { if(audio.paused) audio.play(); else audio.pause(); document.getElementById('playBtn').textContent = audio.paused ? "PLAY" : "PAUSE"; }
 function nextSong() { playSong(isShuffle ? Math.floor(Math.random()*tracks.length) : (index+1)%tracks.length); }
 function prevSong() { playSong(index === 0 ? tracks.length-1 : index-1); }
 function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuffleBtn').classList.toggle('active'); }
 function toggleRepeat() { isRepeat = !isRepeat; audio.loop = isRepeat; document.getElementById('repeatBtn').classList.toggle('active'); }
 function vote(id, type) { likes[id][type]++; localStorage.setItem('likes', JSON.stringify(likes)); buildList(); }
-
 audio.onended = () => { if(!isRepeat) nextSong(); };
-window.onresize = () => { 
-    const c = document.getElementById('viz');
-    if(c) {
-      c.width = window.innerWidth; 
-      c.height = document.querySelector('header').offsetHeight; 
-    }
-};
-
-// Initial Build
+window.onresize = () => { c.width = window.innerWidth; c.height = document.querySelector('header').offsetHeight; };
 buildList();
 </script>
 </body>
