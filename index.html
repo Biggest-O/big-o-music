@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Big O - Neon Rain Final</title> 
+<title>Big O - Final Version</title> 
 <style>
   body { margin: 0; font-family: 'Inter', sans-serif; background: #010103; color: white; padding-bottom: 220px; overflow-x: hidden; }
   header { height: 50vh; position: relative; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; }
@@ -29,7 +29,7 @@
   <canvas id="viz"></canvas>
 </header>
 
-<main id="song-container">Connecting to Supabase...</main>
+<main id="song-container">Syncing with Supabase...</main>
 
 <div class="footer-player">
   <div id="track-display">PICK A TRACK TO START</div>
@@ -44,12 +44,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// --- DB CONFIG ---
+// Supabase Connection
 const SUPABASE_URL = 'https://gbywinmjvbgrtaazjlgm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Bli__qzQMokBoSXPrFPHKA_DXVXgM2a';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// IDs match your table screenshot exactly
+// IDs strictly match your Supabase Table rows
 const tracks = [
   { id: "when_i_think_about_you", t: "When I Think About You", f: "songs/when-i-think-about-you.mp3" },
   { id: "ariya", t: "Ariya", f: "songs/ariya.mp3" },
@@ -61,7 +61,7 @@ const tracks = [
 let audio = new Audio(), currentIdx = 0, context, analyser, source, hue = 180;
 let isShuffle = false, isRepeat = false, drops = [];
 
-// --- REFRESH UI ---
+// UI Update
 async function refreshList() {
   const { data: votesData, error } = await sb.from('Votes').select('*');
   const container = document.getElementById('song-container');
@@ -82,19 +82,19 @@ async function refreshList() {
   }).join('');
 }
 
-// --- DB VOTE ---
+// Database Voting Function
 async function handleVote(songId, colName) {
-  // RPC calls your SQL function 'increment_vote'
+  // RPC calls your "increment_vote" function in Supabase
   const { error } = await sb.rpc('increment_vote', { song: songId, col: colName });
   if (error) {
     console.error("Vote Error:", error.message);
   } else {
-    // Wait briefly for DB to finish, then update screen
+    // Small delay to allow DB processing before UI refresh
     setTimeout(refreshList, 400); 
   }
 }
 
-// --- PLAYER LOGIC ---
+// Player Logic
 function initAndPlay(i) {
   currentIdx = i; audio.src = tracks[currentIdx].f; audio.play();
   document.getElementById('track-display').innerText = "PLAYING: " + tracks[currentIdx].t;
@@ -111,11 +111,8 @@ function toggle() {
 }
 
 function next() { 
-  if (isShuffle) {
-    currentIdx = Math.floor(Math.random() * tracks.length);
-  } else {
-    currentIdx = (currentIdx + 1) % tracks.length;
-  }
+  if (isShuffle) { currentIdx = Math.floor(Math.random() * tracks.length); } 
+  else { currentIdx = (currentIdx + 1) % tracks.length; }
   initAndPlay(currentIdx); 
 }
 
@@ -137,14 +134,13 @@ function toggleRepeat() {
 
 audio.onended = () => { if(!isRepeat) next(); };
 
-// --- VISUALIZER ---
+// Visualizer Logic
 function setupVisualizer() {
   const canvas = document.getElementById('viz'), ctx = canvas.getContext('2d');
   analyser = context.createAnalyser(); analyser.fftSize = 64;
   source = context.createMediaElementSource(audio);
   source.connect(analyser); analyser.connect(context.destination);
   const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
   for(let i=0; i<60; i++) drops.push({x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight, s: 2+Math.random()*4});
 
   function animate() {
