@@ -3,26 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Big O - Floating Grid</title>
+<title>Big O - Official Site</title>
 <style>
-  body{margin:0;font-family:'Segoe UI',Arial;background:#050510;color:white;padding-bottom:140px;overflow-x:hidden}
-  header{height:50vh;position:relative;background:#050510;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-  h1{font-size:5.5rem;font-weight:900;z-index:2;text-shadow:0 0 30px rgba(0,255,255,0.5);transition:transform 0.1s ease;pointer-events:none;letter-spacing:10px}
+  body{margin:0;font-family:'Segoe UI',Arial;background:#0b0b18;color:white;padding-bottom:140px;overflow-x:hidden}
+  header{height:45vh;position:relative;background:linear-gradient(to bottom, #120b24, #0b0b18);display:flex;align-items:center;justify-content:center;overflow:hidden;border-bottom: 2px solid #333;}
+  h1{font-size:5.5rem;font-weight:900;z-index:2;text-shadow:0 0 30px #00ffff;transition:transform 0.1s ease;pointer-events:none}
   canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
   
-  main{padding:2rem;max-width:700px;margin:auto;position:relative;z-index:2}
-  .track{background:rgba(255,255,255,.03);padding:1.2rem;border-radius:12px;margin-bottom:1rem;border:1px solid rgba(255,255,255,0.1); transition: 0.3s;}
+  main{padding:2rem;max-width:700px;margin:auto}
+  .track{background:rgba(255,255,255,.05);padding:1.2rem;border-radius:12px;margin-bottom:1rem;border:1px solid #333; transition: 0.3s;}
   .track:hover{background:rgba(0, 255, 255, 0.05); border-color: #00ffff;}
   .track-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   
-  button{background:#00ffff;border:none;padding:8px 12px;border-radius:5px;cursor:pointer;font-weight:bold;color:#050510;transition:0.2s}
+  button{background:#00ffff;border:none;padding:8px 12px;border-radius:5px;cursor:pointer;font-weight:bold;color:#0b0b18;transition:0.2s}
   button:hover{background:#fff;transform:scale(1.05)}
-  .btn-vote{background:rgba(255,255,255,0.1);color:white;margin-left:5px}
+  .btn-vote{background:#444;color:white;margin-left:5px}
   .active{background:#ff00ff !important;color:white}
   
-  .controls{position:fixed;bottom:0;left:0;width:100%;background:rgba(10,10,25,0.95);backdrop-filter:blur(10px);padding:15px;display:flex;flex-direction:column;align-items:center;border-top:1px solid rgba(0,255,255,0.3);z-index:10;}
+  .controls{position:fixed;bottom:0;left:0;width:100%;background:#1a1a2e;padding:15px;display:flex;flex-direction:column;align-items:center;border-top:3px solid #00ffff;z-index:10; box-shadow: 0 -10px 30px rgba(0,0,0,0.5);}
   .btn-group{display:flex;gap:12px;margin-bottom:10px}
-  #now{color:#00ffff;font-size:0.9rem;margin-bottom:8px;font-weight:bold; text-transform: uppercase; letter-spacing: 2px; opacity: 0.8}
+  #now{color:#00ffff;font-size:1.1rem;margin-bottom:8px;font-weight:bold; text-transform: uppercase; letter-spacing: 1px;}
 </style>
 </head>
 <body>
@@ -37,13 +37,13 @@
 </main>
 
 <div class="controls">
-  <div id="now">Awaiting Selection</div>
+  <div id="now">SELECT A SONG TO PLAY</div>
   <div class="btn-group">
-    <button onclick="toggleShuffle()" id="shuffleBtn">SHUFFLE</button>
+    <button onclick="toggleShuffle()" id="shuffleBtn">🔀 SHUFFLE</button>
     <button onclick="prevSong()">⏮</button>
     <button onclick="togglePlay()" id="playBtn" style="min-width: 80px;">PAUSE</button>
     <button onclick="nextSong()">⏭</button>
-    <button onclick="toggleRepeat()" id="repeatBtn">REPEAT</button>
+    <button onclick="toggleRepeat()" id="repeatBtn">🔁 REPEAT</button>
   </div>
 </div>
 
@@ -70,7 +70,7 @@ function buildList() {
     d.className = 'track';
     d.innerHTML = `
       <div class="track-info">
-        <span style="font-size:1.1rem;font-weight:bold;letter-spacing:1px">${s.t}</span>
+        <span style="font-size:1.1rem;font-weight:bold">${s.t}</span>
         <button onclick="playSong(${s.id})">PLAY</button>
       </div>
       <div>
@@ -87,24 +87,29 @@ function playSong(i) {
   index = i;
   audio.src = tracks[index].f;
   audio.load();
+  
   if (!ac) {
     ac = new (window.AudioContext || window.webkitAudioContext)();
     setupVisualizer();
   }
   if (ac.state === 'suspended') ac.resume();
-  audio.play().then(() => {
-    document.getElementById('now').textContent = "Playing: " + tracks[index].t;
-    document.getElementById('playBtn').textContent = "PAUSE";
-  });
+
+  audio.play()
+    .then(() => {
+      document.getElementById('now').textContent = "NOW PLAYING: " + tracks[index].t;
+      document.getElementById('playBtn').textContent = "PAUSE";
+    })
+    .catch(e => console.log("User must interact first"));
 }
 
+/* ===== THE NETLIFY STYLE BAR VISUALIZER ===== */
 function setupVisualizer() {
   const c = document.getElementById('viz'), ctx = c.getContext('2d');
   c.width = window.innerWidth;
   c.height = document.querySelector('header').offsetHeight;
   
   an = ac.createAnalyser();
-  an.fftSize = 512;
+  an.fftSize = 256; // Sharp, fast bars like your old version
   src = ac.createMediaElementSource(audio);
   src.connect(an);
   an.connect(ac.destination);
@@ -114,42 +119,32 @@ function setupVisualizer() {
   function draw() {
     requestAnimationFrame(draw);
     an.getByteFrequencyData(data);
-    ctx.fillStyle = "rgba(5, 5, 16, 0.2)"; // Slight trail effect
-    ctx.fillRect(0, 0, c.width, c.height);
+    
+    ctx.clearRect(0, 0, c.width, c.height);
+    
+    let barWidth = (c.width / data.length) * 2.5;
+    let barHeight;
+    let x = 0;
 
-    const rows = 10;
-    const cols = 20;
-    const spacingX = c.width / cols;
-    const spacingY = c.height / rows;
+    for (let i = 0; i < data.length; i++) {
+      barHeight = data[i] * 1.5;
 
-    ctx.beginPath();
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.15)";
-    ctx.lineWidth = 1;
+      // Color logic similar to your old site (Cycles through neon colors)
+      ctx.fillStyle = `rgb(0, ${barHeight + 100}, 255)`;
+      ctx.fillRect(x, c.height - barHeight, barWidth, barHeight);
 
-    for (let i = 0; i < cols; i++) {
-      for (let j = 0; j < rows; j++) {
-        // Use frequency data to distort the grid
-        const freqIdx = (i + j) % data.length;
-        const offset = data[freqIdx] / 4;
-
-        ctx.strokeRect(
-          i * spacingX + (offset / 2), 
-          j * spacingY + (offset / 2), 
-          spacingX - offset, 
-          spacingY - offset
-        );
+      x += barWidth + 1;
+      
+      // Pulse Logo to the bass (the first few bars)
+      if(i === 5) {
+        document.getElementById('logo').style.transform = `scale(${1 + data[i]/600})`;
       }
     }
-    
-    // Pulse logo subtly
-    const bass = data[5] / 255;
-    document.getElementById('logo').style.transform = `scale(${1 + bass * 0.1})`;
-    document.getElementById('logo').style.opacity = 0.5 + (bass * 0.5);
   }
   draw();
 }
 
-/* --- Logic --- */
+/* --- Controls --- */
 function togglePlay() {
   if(audio.paused) audio.play(); else audio.pause();
   document.getElementById('playBtn').textContent = audio.paused ? "PLAY" : "PAUSE";
@@ -159,7 +154,9 @@ function prevSong() { playSong(index === 0 ? tracks.length-1 : index-1); }
 function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuffleBtn').classList.toggle('active'); }
 function toggleRepeat() { isRepeat = !isRepeat; audio.loop = isRepeat; document.getElementById('repeatBtn').classList.toggle('active'); }
 function vote(id, type) { likes[id][type]++; localStorage.setItem('likes', JSON.stringify(likes)); buildList(); }
+
 audio.onended = () => { if(!isRepeat) nextSong(); };
+
 window.onresize = () => { 
   const c = document.getElementById('viz');
   c.width = window.innerWidth;
