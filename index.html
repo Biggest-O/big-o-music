@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Big O - Neon Rain Final</title> 
+<title>Big O - Neon Rain</title> 
 <style>
   body { margin: 0; font-family: 'Inter', sans-serif; background: #010103; color: white; padding-bottom: 200px; overflow-x: hidden; }
   header { height: 50vh; position: relative; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; }
@@ -16,7 +16,6 @@
   .vote-button:hover { background: #333; border-color: #00ffff; }
   button.action-btn { background: none; border: 1px solid #00ffff; color: #00ffff; padding: 10px 18px; border-radius: 50px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; transition: 0.2s; }
   button.action-btn:hover { background: #00ffff; color: #000; box-shadow: 0 0 15px #00ffff; }
-  .active { background: #ff00ff !important; border-color: #ff00ff !important; color: white !important; box-shadow: 0 0 20px #ff00ff !important; }
   .footer-player { position: fixed; bottom: 0; width: 100%; background: #05050a; border-top: 2px solid #00ffff; padding: 25px 10px; display: flex; flex-direction: column; align-items: center; z-index: 100; }
   #track-display { font-size: 0.75rem; color: #00ffff; letter-spacing: 2px; margin-bottom: 15px; font-weight: bold; text-align: center; }
   .controls-row { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
@@ -29,7 +28,7 @@
   <canvas id="viz"></canvas>
 </header>
 
-<main id="song-container">Loading Tracks...</main>
+<main id="song-container">Loading Tracks from Supabase...</main>
 
 <div class="footer-player">
   <div id="track-display">PICK A TRACK TO START</div>
@@ -44,7 +43,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// 1. SUPABASE CONNECTION
+// --- SUPABASE SETUP ---
 const SUPABASE_URL = 'https://gbywinmjvbgrtaazjlgm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Bli__qzQMokBoSXPrFPHKA_DXVXgM2a';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -60,38 +59,41 @@ const tracks = [
 let audio = new Audio(), currentIdx = 0, context, analyser, source, hue = 180;
 let isShuffle = false, isRepeat = false, drops = [];
 
-// 2. FETCH DATA FROM SUPABASE
+// --- DATABASE FUNCTIONS ---
 async function refreshList() {
-  const { data: votesData, error } = await sb.from('Votes').select('*');
-  if (error) console.error("Fetch Error:", error);
+  try {
+    const { data: votesData, error } = await sb.from('Votes').select('*');
+    if (error) throw error;
 
-  const container = document.getElementById('song-container');
-  if (!container) return;
+    const container = document.getElementById('song-container');
+    if (!container) return;
 
-  container.innerHTML = tracks.map((s, index) => {
-    const row = votesData?.find(r => r.song_id === s.id) || { likes: 0, dislikes: 0 };
-    return `
-      <div class="track-card">
-        <div>
-          <h3 style="margin:0; font-size: 1.2rem; letter-spacing: 1px;">${s.t}</h3>
-          <div class="vote-container">
-            <button class="vote-button" onclick="handleVote('${s.id}','likes')">👍 ${row.likes}</button>
-            <button class="vote-button" onclick="handleVote('${s.id}','dislikes')">👎 ${row.dislikes}</button>
+    container.innerHTML = tracks.map((s, index) => {
+      const row = votesData?.find(r => r.song_id === s.id) || { likes: 0, dislikes: 0 };
+      return `
+        <div class="track-card">
+          <div>
+            <h3 style="margin:0; font-size: 1.2rem; letter-spacing: 1px;">${s.t}</h3>
+            <div class="vote-container">
+              <button class="vote-button" onclick="handleVote('${s.id}','likes')">👍 ${row.likes}</button>
+              <button class="vote-button" onclick="handleVote('${s.id}','dislikes')">👎 ${row.dislikes}</button>
+            </div>
           </div>
-        </div>
-        <button class="action-btn" onclick="initAndPlay(${index})">Play</button>
-      </div>`;
-  }).join('');
+          <button class="action-btn" onclick="initAndPlay(${index})">Play</button>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    console.error("Critical Page Error:", err.message);
+  }
 }
 
-// 3. VOTE FUNCTION
 async function handleVote(songId, type) {
   const { error } = await sb.rpc('increment_vote', { song: songId, col: type });
-  if (error) console.error("Vote Error:", error);
+  if (error) console.error("Vote Error:", error.message);
   refreshList();
 }
 
-// 4. AUDIO & VISUALIZER
+// --- VISUALIZER & AUDIO ---
 function initAndPlay(i) {
   currentIdx = i; 
   audio.src = tracks[currentIdx].f; 
@@ -140,7 +142,7 @@ function setupVisualizer() {
   animate();
 }
 
-// Controls
+// Player Controls
 function toggle() { 
   if(audio.paused) audio.play(); else audio.pause();
   document.getElementById('playBtn').innerText = audio.paused ? "Play" : "Pause";
@@ -154,7 +156,7 @@ function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuf
 function toggleRepeat() { isRepeat = !isRepeat; audio.loop = isRepeat; document.getElementById('repeatBtn').classList.toggle('active', isRepeat); }
 audio.onended = () => { if(!isRepeat) next(); };
 
-// Start the app
+// START
 refreshList();
 </script>
 </body>
