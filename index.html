@@ -3,22 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Big O - Neon Rain Final</title> 
+<title>Big O - Official Music</title> 
 <style>
+  /* Global Styles */
   body { margin: 0; font-family: 'Inter', sans-serif; background: #010103; color: white; padding-bottom: 220px; overflow-x: hidden; }
+  
+  /* Full-screen Neon Rain Background */
   #viz { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; }
+  
   header { height: 45vh; position: relative; display: flex; align-items: center; justify-content: center; background: transparent; }
-  h1 { font-size: clamp(3rem, 10vw, 6rem); font-weight: 900; letter-spacing: 15px; color: #fff; pointer-events: none; text-transform: uppercase; }
+  
+  h1 { font-size: clamp(3rem, 10vw, 6rem); font-weight: 900; letter-spacing: 15px; color: #fff; pointer-events: none; text-transform: uppercase; transition: 0.1s; }
+  
   main { padding: 2rem 1rem; max-width: 700px; margin: auto; position: relative; z-index: 5; }
-  .track-card { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(0, 255, 255, 0.2); border-radius: 15px; padding: 1.5rem; margin-bottom: 1.2rem; display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(12px); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); }
+
+  /* Track Cards with Glassmorphism */
+  .track-card { 
+    background: rgba(255, 255, 255, 0.08); 
+    border: 1px solid rgba(0, 255, 255, 0.2); 
+    border-radius: 15px; 
+    padding: 1.5rem; 
+    margin-bottom: 1.2rem; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    backdrop-filter: blur(12px); 
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); 
+  }
+
   .vote-container { display: flex; gap: 10px; margin-top: 12px; }
-  .vote-button { background: rgba(255, 255, 255, 0.1); border: 1px solid #444; color: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+  
+  .vote-button { 
+    background: rgba(255, 255, 255, 0.1); 
+    border: 1px solid #444; 
+    color: white; 
+    padding: 8px 15px; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-size: 0.9rem; 
+    transition: 0.2s; 
+  }
+  
   .vote-button:hover { background: rgba(0, 255, 255, 0.2); border-color: #00ffff; }
-  button.action-btn { background: none; border: 1px solid #00ffff; color: #00ffff; padding: 10px 18px; border-radius: 50px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; transition: 0.2s; }
+
+  button.action-btn { 
+    background: none; 
+    border: 1px solid #00ffff; 
+    color: #00ffff; 
+    padding: 10px 18px; 
+    border-radius: 50px; 
+    cursor: pointer; 
+    font-weight: 600; 
+    text-transform: uppercase; 
+    font-size: 0.7rem; 
+    transition: 0.2s; 
+  }
+
   button.action-btn:hover { background: #00ffff; color: #000; box-shadow: 0 0 15px #00ffff; }
+
   .active { background: #ff00ff !important; border-color: #ff00ff !important; color: white !important; box-shadow: 0 0 20px #ff00ff !important; }
-  .footer-player { position: fixed; bottom: 0; width: 100%; background: rgba(5, 5, 10, 0.9); border-top: 2px solid #00ffff; padding: 25px 10px; display: flex; flex-direction: column; align-items: center; z-index: 100; backdrop-filter: blur(15px); }
+
+  /* Fixed Player Bar */
+  .footer-player { 
+    position: fixed; 
+    bottom: 0; 
+    width: 100%; 
+    background: rgba(5, 5, 10, 0.9); 
+    border-top: 2px solid #00ffff; 
+    padding: 25px 10px; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    z-index: 100; 
+    backdrop-filter: blur(15px); 
+  }
+
   #track-display { font-size: 0.75rem; color: #00ffff; letter-spacing: 2px; margin-bottom: 15px; font-weight: bold; text-align: center; }
+  
   .controls-row { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
 </style>
 </head>
@@ -45,6 +106,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// --- SUPABASE CONFIG ---
 const SUPABASE_URL = 'https://gbywinmjvbgrtaazjlgm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Bli__qzQMokBoSXPrFPHKA_DXVXgM2a';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -60,6 +122,7 @@ const tracks = [
 let audio = new Audio(), currentIdx = 0, context, analyser, source, hue = 180;
 let isShuffle = false, isRepeat = false, drops = [];
 
+// --- REFRESH SONG LIST ---
 async function refreshList() {
   const { data: votesData } = await sb.from('Votes').select('*');
   const container = document.getElementById('song-container');
@@ -79,32 +142,50 @@ async function refreshList() {
   }).join('');
 }
 
-// --- UPDATED VOTE ENGINE: ALLOWS SWAPPING ---
+// --- VOTE LOGIC (ANTI-SPAM + SWITCHING) ---
 async function handleVote(songId, colName) {
   const storageKey = `voted_${songId}`;
   const previousVote = localStorage.getItem(storageKey);
 
   if (previousVote === colName) {
-    alert("You've already selected this choice! ⚡");
+    alert("You've already chosen this option! ⚡");
     return;
   }
 
   const { error } = await sb.rpc('increment_vote', { song: songId, col: colName });
   if (!error) {
-    localStorage.setItem(storageKey, colName); // Store 'likes' or 'dislikes'
+    localStorage.setItem(storageKey, colName);
     setTimeout(refreshList, 300); 
+  } else {
+    console.error("Database Error:", error.message);
   }
 }
 
+// --- PLAYER CONTROLS ---
 function initAndPlay(i) {
-  currentIdx = i; audio.src = tracks[currentIdx].f; audio.play();
+  currentIdx = i; 
+  audio.src = tracks[currentIdx].f; 
+  audio.play();
+  
+  // UI & Discord status update
   document.getElementById('track-display').innerText = "PLAYING: " + tracks[currentIdx].t;
   document.getElementById('playBtn').innerText = "Pause";
-  if (!context) { context = new (window.AudioContext || window.webkitAudioContext)(); setupVisualizer(); }
+  document.title = "Listening to: " + tracks[currentIdx].t;
+
+  if (!context) { 
+    context = new (window.AudioContext || window.webkitAudioContext)(); 
+    setupVisualizer(); 
+  }
 }
 
 function toggle() { 
-  if(audio.paused) audio.play(); else audio.pause();
+  if(audio.paused) {
+    audio.play();
+    document.title = "Listening to: " + tracks[currentIdx].t;
+  } else {
+    audio.pause();
+    document.title = "Paused: " + tracks[currentIdx].t;
+  }
   document.getElementById('playBtn').innerText = audio.paused ? "Play" : "Pause";
 }
 
@@ -114,27 +195,49 @@ function next() {
   initAndPlay(currentIdx); 
 }
 
-function prev() { currentIdx = (currentIdx - 1 + tracks.length) % tracks.length; initAndPlay(currentIdx); }
-function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuffleBtn').classList.toggle('active', isShuffle); }
-function toggleRepeat() { isRepeat = !isRepeat; audio.loop = isRepeat; document.getElementById('repeatBtn').classList.toggle('active', isRepeat); }
+function prev() { 
+  currentIdx = (currentIdx - 1 + tracks.length) % tracks.length; 
+  initAndPlay(currentIdx); 
+}
+
+function toggleShuffle() { 
+  isShuffle = !isShuffle; 
+  document.getElementById('shuffleBtn').classList.toggle('active', isShuffle); 
+}
+
+function toggleRepeat() { 
+  isRepeat = !isRepeat; 
+  audio.loop = isRepeat; 
+  document.getElementById('repeatBtn').classList.toggle('active', isRepeat); 
+}
+
 audio.onended = () => { if(!isRepeat) next(); };
 
+// --- NEON RAIN VISUALIZER ---
 function setupVisualizer() {
   const canvas = document.getElementById('viz'), ctx = canvas.getContext('2d');
   analyser = context.createAnalyser(); analyser.fftSize = 64;
   source = context.createMediaElementSource(audio);
   source.connect(analyser); analyser.connect(context.destination);
   const dataArray = new Uint8Array(analyser.frequencyBinCount);
-  for(let i=0; i<90; i++) drops.push({x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight, s: 2+Math.random()*5});
+
+  for(let i=0; i<90; i++) {
+    drops.push({x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight, s: 2+Math.random()*5});
+  }
 
   function animate() {
     requestAnimationFrame(animate);
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth; 
+    canvas.height = window.innerHeight;
     analyser.getByteFrequencyData(dataArray);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
     hue = (hue + 0.5) % 360;
     const color = `hsl(${hue}, 100%, 50%)`;
     document.getElementById('logo').style.textShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+    
     const bass = dataArray[2] / 255;
     drops.forEach(d => {
       ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.beginPath();
