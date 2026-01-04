@@ -8,40 +8,40 @@
   body { 
     margin: 0; 
     font-family: 'Inter', sans-serif; 
-    background: #010103; 
+    background: #000; 
     color: white; 
     padding-bottom: 220px; 
-    overflow-x: hidden; 
+    overflow-x: hidden;
   }
   
+  /* Background Canvas - Stays behind everything */
+  #viz { 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100vw; 
+    height: 100vh; 
+    z-index: 1; 
+    pointer-events: none; /* Allows you to click buttons through the rain */
+  }
+
   header { 
     height: 50vh; 
     position: relative; 
     display: flex; 
     align-items: center; 
     justify-content: center; 
-    background: transparent; 
+    z-index: 10;
   }
 
   h1 { 
     font-size: 6rem; 
     font-weight: 900; 
-    z-index: 10; 
     letter-spacing: 15px; 
     color: #fff; 
-    pointer-events: none; 
     text-transform: uppercase; 
     text-align: center;
-  }
-
-  /* THE FIXED RAIN FIX */
-  canvas { 
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    width: 100vw; 
-    height: 100vh; 
-    z-index: -1; 
+    margin: 0;
   }
 
   main { 
@@ -49,7 +49,7 @@
     max-width: 700px; 
     margin: auto; 
     position: relative; 
-    z-index: 5; 
+    z-index: 20; /* High z-index so buttons are clickable */
   }
 
   .track-card { 
@@ -77,8 +77,8 @@
     transition: 0.2s; 
   }
 
-  .voted-likes { background: #ff4d4d !important; border-color: #ff4d4d !important; box-shadow: 0 0 10px #ff4d4d; }
-  .voted-dislikes { background: #6080ff !important; border-color: #6080ff !important; box-shadow: 0 0 10px #6080ff; }
+  .voted-likes { background: #ff4d4d !important; border-color: #ff4d4d !important; }
+  .voted-dislikes { background: #6080ff !important; border-color: #6080ff !important; }
 
   button.action-btn { 
     background: none; border: 1px solid #00ffff; color: #00ffff; 
@@ -88,7 +88,7 @@
 
   button.action-btn:hover { background: #00ffff; color: #000; box-shadow: 0 0 15px #00ffff; }
   
-  .active { background: #ff00ff !important; border-color: #ff00ff !important; color: white !important; }
+  .active { background: #ff00ff !important; border-color: #ff00ff !important; }
 
   .footer-player { 
     position: fixed; bottom: 0; width: 100%; 
@@ -103,12 +103,13 @@
 </head>
 <body>
 
+<canvas id="viz"></canvas>
+
 <header>
   <h1 id="logo">BIG O</h1> 
-  <canvas id="viz"></canvas>
 </header>
 
-<main id="song-container">Syncing with Supabase...</main>
+<main id="song-container">Loading Tracks...</main>
 
 <div class="footer-player">
   <div id="track-display">PICK A TRACK TO START</div>
@@ -137,17 +138,21 @@ const tracks = [
 
 let audio = new Audio(), currentIdx = 0, context, analyser, source, hue = 180;
 let isShuffle = false, isRepeat = false, drops = [];
-let userIP = ""; 
+let userIP = "Guest_" + Math.floor(Math.random() * 999); 
+
+// 1. Load data immediately
+async function init() {
+    refreshList(); // Show songs right away
+    getIP();       // Try to get real IP in background
+}
 
 async function getIP() {
     try {
         const response = await fetch('https://api.ipify.org?format=json');
         const data = await response.json();
         userIP = data.ip;
-    } catch (e) {
-        userIP = "visitor_" + Math.floor(Math.random() * 1000);
-    }
-    refreshList();
+        refreshList(); // Update once IP is known
+    } catch (e) { console.log("Using Guest ID"); }
 }
 
 async function refreshList() {
@@ -155,95 +160,4 @@ async function refreshList() {
   const container = document.getElementById('song-container');
   
   container.innerHTML = tracks.map((s, index) => {
-    const likes = votesData?.filter(r => r.song_id === s.id && r.vote_type === 'likes').length || 0;
-    const dislikes = votesData?.filter(r => r.song_id === s.id && r.vote_type === 'dislikes').length || 0;
-    const myVote = votesData?.find(r => r.song_id === s.id && r.user_ip === userIP);
-
-    return `
-      <div class="track-card">
-        <div>
-          <h3 style="margin:0; font-size: 1.2rem;">${s.t}</h3>
-          <div class="vote-container">
-            <button class="vote-button ${myVote?.vote_type === 'likes' ? 'voted-likes' : ''}" 
-                    onclick="handleVote('${s.id}','likes')">👍 ${likes}</button>
-            <button class="vote-button ${myVote?.vote_type === 'dislikes' ? 'voted-dislikes' : ''}" 
-                    onclick="handleVote('${s.id}','dislikes')">👎 ${dislikes}</button>
-          </div>
-        </div>
-        <button class="action-btn" onclick="initAndPlay(${index})">Play</button>
-      </div>`;
-  }).join('');
-}
-
-async function handleVote(songId, type) {
-    const { data: existing } = await sb.from('Votes').select('*').eq('song_id', songId).eq('user_ip', userIP).maybeSingle();
-    if (existing) {
-        if (existing.vote_type === type) { await sb.from('Votes').delete().eq('id', existing.id); } 
-        else { await sb.from('Votes').update({ vote_type: type }).eq('id', existing.id); }
-    } else {
-        await sb.from('Votes').insert([{ song_id: songId, user_ip: userIP, vote_type: type }]);
-    }
-    refreshList();
-}
-
-function initAndPlay(i) {
-  currentIdx = i; audio.src = tracks[currentIdx].f; audio.play();
-  document.getElementById('track-display').innerText = "PLAYING: " + tracks[currentIdx].t;
-  document.getElementById('playBtn').innerText = "Pause";
-  if (!context) { context = new (window.AudioContext || window.webkitAudioContext)(); setupVisualizer(); }
-}
-
-function toggle() { 
-  if(audio.paused) audio.play(); else audio.pause();
-  document.getElementById('playBtn').innerText = audio.paused ? "Play" : "Pause";
-}
-
-function next() { 
-  currentIdx = isShuffle ? Math.floor(Math.random() * tracks.length) : (currentIdx + 1) % tracks.length;
-  initAndPlay(currentIdx); 
-}
-
-function prev() { 
-  currentIdx = (currentIdx - 1 + tracks.length) % tracks.length; 
-  initAndPlay(currentIdx); 
-}
-
-function toggleShuffle() { isShuffle = !isShuffle; document.getElementById('shuffleBtn').classList.toggle('active', isShuffle); }
-function toggleRepeat() { isRepeat = !isRepeat; audio.loop = isRepeat; document.getElementById('repeatBtn').classList.toggle('active', isRepeat); }
-
-audio.onended = () => { if(!isRepeat) next(); };
-
-function setupVisualizer() {
-  const canvas = document.getElementById('viz'), ctx = canvas.getContext('2d');
-  analyser = context.createAnalyser(); analyser.fftSize = 64;
-  source = context.createMediaElementSource(audio);
-  source.connect(analyser); analyser.connect(context.destination);
-  const dataArray = new Uint8Array(analyser.frequencyBinCount);
-  
-  for(let i=0; i<100; i++) drops.push({x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight, s: 2+Math.random()*4});
-
-  function animate() {
-    requestAnimationFrame(animate);
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
-    analyser.getByteFrequencyData(dataArray);
-    ctx.fillStyle = 'black'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    hue = (hue + 0.6) % 360;
-    const color = `hsl(${hue}, 100%, 50%)`;
-    document.getElementById('logo').style.textShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
-    const bass = dataArray[2] / 255;
-    drops.forEach(d => {
-      ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.beginPath();
-      ctx.moveTo(d.x, d.y); ctx.lineTo(d.x, d.y + 15 + (bass * 45));
-      ctx.stroke();
-      d.y += d.s + (bass * 15);
-      if(d.y > window.innerHeight) { d.y = -50; d.x = Math.random()*window.innerWidth; }
-    });
-    document.getElementById('logo').style.transform = `scale(${1 + (bass * 0.07)})`;
-  }
-  animate();
-}
-
-window.onload = getIP;
-</script>
-</body>
-</html>
+    const likes = votesData?.filter(r => r.song_id === s.id && r
